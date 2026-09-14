@@ -315,7 +315,8 @@ app.post('/api/paystack/initialize', async (req, res) => {
                 Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 10000
         });
 
         console.log(' Paystack Initialize Success!');
@@ -345,7 +346,8 @@ app.post('/api/paystack/verify', async (req, res) => {
             headers: {
                 Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
+            },
+            timeout: 10000
         });
 
         console.log(' Paystack Verification Success! Status:', verifyRes.data.data.status);
@@ -380,17 +382,19 @@ app.post('/api/paystack/verify', async (req, res) => {
             await order.save();
             console.log(` Order Created: ${order.orderNumber}`);
 
-            const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`;
+            res.json({ success: true, orderId: order.orderNumber });
             
-            const mailOptions = {
-                from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER}>`,
-                to: orderData.email,
-                cc: process.env.EMAIL_TO && process.env.EMAIL_TO.toLowerCase() !== orderData.email.toLowerCase()
-                    ? process.env.EMAIL_TO
-                    : undefined,
-                subject: `Order ${order.orderNumber} Confirmed - THE AURA EMPORIUM`,
-                text: `Dear ${orderData.fullName}, your order ${order.orderNumber} has been confirmed. Order total: ₦${Number(orderData.total).toLocaleString()}.`,
-                html: `
+            try {
+                const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`;
+                const mailOptions = {
+                    from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER}>`,
+                    to: orderData.email,
+                    cc: process.env.EMAIL_TO && process.env.EMAIL_TO.toLowerCase() !== orderData.email.toLowerCase()
+                        ? process.env.EMAIL_TO
+                        : undefined,
+                    subject: `Order ${order.orderNumber} Confirmed - THE AURA EMPORIUM`,
+                    text: `Dear ${orderData.fullName}, your order ${order.orderNumber} has been confirmed. Order total: ₦${Number(orderData.total).toLocaleString()}.`,
+                    html: `
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -436,13 +440,17 @@ app.post('/api/paystack/verify', async (req, res) => {
                         </div>
                     </body>
                     </html>
-                `
-            };
+                    `
+                };
 
-            await transporter.sendMail(mailOptions);
-            console.log('✅ Thank you email sent to:', orderData.email);
+                transporter.sendMail(mailOptions)
+                    .then(() => console.log('✅ Thank you email sent to:', orderData.email))
+                    .catch(err => console.error('Email failed:', err));
+            } catch (emailError) {
+                console.error('Email setup failed:', emailError);
+            }
 
-            res.json({ success: true, orderId: order.orderNumber });
+            return;
         } else {
             res.status(400).json({ success: false, error: 'Payment verification failed' });
         }
