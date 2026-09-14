@@ -897,6 +897,18 @@
                 setTimeout(() => notification.remove(), 500);
             }, 3000);
         }
+
+        // Clears the track form when an admin runs "Reset Site Data" /
+        // "Clear Track-Order History" from another tab (same browser).
+        window.addEventListener('storage', (e) => {
+            if (e.key !== 'aura:reset-site-data' && e.key !== null) return;
+            const orderInput = document.getElementById('orderId');
+            const emailInput = document.getElementById('email');
+            if (orderInput) orderInput.value = '';
+            if (emailInput) emailInput.value = '';
+            if (resultContainer) resultContainer.innerHTML = '';
+        });
     </script>
+    <script src="/toast.js"></script>
 </body>
 </html>

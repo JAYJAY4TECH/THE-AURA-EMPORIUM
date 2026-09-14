@@ -224,6 +224,37 @@ const adminSchema = new mongoose.Schema({
 const Admin = mongoose.model('Admin', adminSchema);
 
 
+const adminLogSchema = new mongoose.Schema({
+    action: { type: String, required: true },
+    detail: { type: String, default: '' },
+    orderNumber: { type: String, default: null },
+    count: { type: Number, default: null },
+    performedBy: { type: String, default: 'admin' }
+}, { timestamps: true });
+
+const AdminLog = mongoose.model('AdminLog', adminLogSchema);
+
+function requireAdmin(req, res, next) {
+    if (req.session && req.session.isAdmin) return next();
+    return res.status(401).json({ success: false, error: 'Unauthorized. Admin login required.' });
+}
+
+async function logAdminAction(action, opts = {}) {
+    try {
+        await AdminLog.create({
+            action,
+            detail: opts.detail || '',
+            orderNumber: opts.orderNumber || null,
+            count: (opts.count === undefined || opts.count === null) ? null : opts.count,
+            performedBy: opts.performedBy || 'admin'
+        });
+        console.log(` [ADMIN-RESET] ${action}${opts.detail ? ' — ' + opts.detail : ''}`);
+    } catch (err) {
+        console.error(' Failed to write admin log:', err.message);
+    }
+}
+
+
 const db = mongoose.connection;
 
 async function connectDB() {
@@ -883,6 +914,90 @@ app.put('/api/admin/orders/:id', async (req, res) => {
     } catch (error) {
         console.error(' Update Status Error:', error.message);
         res.status(500).json({ error: error.message });
+    }
+});
+
+
+// ——— Admin-only danger-zone: order / revenue / reset controls ———
+// Every route below requires an admin session and writes to AdminLog.
+// Revenue/stats are derived from the orders collection, so "reset revenue"
+// and "master reset" work by deleting orders (products/reviews untouched).
+
+app.delete('/api/admin/orders/:id', requireAdmin, async (req, res) => {
+    try {
+        const order = await Order.findByIdAndDelete(req.params.id);
+        if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+        await logAdminAction('delete-order', {
+            orderNumber: order.orderNumber,
+            detail: `Deleted order ${order.orderNumber} (${order.customerName}, ₦${Number(order.total).toLocaleString()})`
+        });
+        res.json({ success: true, orderNumber: order.orderNumber });
+    } catch (error) {
+        console.error(' Delete Order Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+app.delete('/api/admin/orders', requireAdmin, async (req, res) => {
+    try {
+        const result = await Order.deleteMany({});
+        await logAdminAction('clear-orders', {
+            count: result.deletedCount,
+            detail: `Cleared all orders (${result.deletedCount} deleted)`
+        });
+        res.json({ success: true, deletedCount: result.deletedCount });
+    } catch (error) {
+        console.error(' Clear Orders Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+app.post('/api/admin/reset-revenue', requireAdmin, async (req, res) => {
+    // Revenue/stats are computed from orders (no separate stats collection),
+    // so resetting revenue = deleting all orders. Products & reviews kept.
+    try {
+        const result = await Order.deleteMany({});
+        await logAdminAction('reset-revenue', {
+            count: result.deletedCount,
+            detail: `Revenue/stats reset to zero by deleting ${result.deletedCount} order(s)`
+        });
+        res.json({ success: true, deletedCount: result.deletedCount, totalRevenue: 0, totalOrders: 0, pendingOrders: 0 });
+    } catch (error) {
+        console.error(' Reset Revenue Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+app.post('/api/admin/reset-site-data', requireAdmin, async (req, res) => {
+    // MASTER: deletes all orders (drives revenue + stats + tracking to zero).
+    // Products & reviews are intentionally preserved.
+    // Track-order HISTORY note: the tracker reads live from the orders
+    // collection, so once orders are gone every lookup returns not-found.
+    // Browsers may hold form inputs; the admin page also broadcasts a
+    // `aura:reset-site-data` storage event so open track-order tabs clear.
+    try {
+        const result = await Order.deleteMany({});
+        await logAdminAction('reset-site-data', {
+            count: result.deletedCount,
+            detail: `MASTER RESET: deleted ${result.deletedCount} order(s); revenue/stats/tracking zeroed`
+        });
+        res.json({ success: true, deletedCount: result.deletedCount });
+    } catch (error) {
+        console.error(' Reset Site Data Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+app.get('/api/admin/logs', requireAdmin, async (req, res) => {
+    try {
+        const logs = await AdminLog.find().sort({ createdAt: -1 }).limit(100).lean();
+        res.json({ success: true, logs });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
