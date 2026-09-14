@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - THE AURA EMPORIUM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/fontawesome/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/animations.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8f6f3;
+            padding-top: 42px;
+        }
+
+        
+        .marquee-wrap {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 42px;
+            width: 100%;
+            background: #0e0e0e;
+            color: #efe0b2;
+            border-bottom: 1px solid #d4af37;
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            direction: ltr;
+        }
+
+        .marquee-track {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            min-width: 100%;
+            width: max-content;
+            white-space: nowrap;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #efe0b2;
+            animation: tickerSlide 22s linear infinite;
+        }
+
+        .marquee-track span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #efe0b2;
+        }
+
+        .marquee-track .dot {
+            color: #d4af37;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        @keyframes tickerSlide {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(25px);
+                filter: blur(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        @keyframes shimmerGold {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes badgePulse {
+            0% { transform: scale(0.98); box-shadow: 0 0 0 rgba(212, 175, 55, 0); }
+            50% { transform: scale(1.03); box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.06); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(212, 175, 55, 0); }
+        }
+
+        
+        .sidebar {
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 30px 0;
+            color: #fff;
+            position: fixed;
+            top: 42px;
+            width: 250px;
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .sidebar .brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #d4af37;
+            padding: 0 20px 30px;
+        }
+        .sidebar .brand i { margin-right: 10px; }
+        .sidebar .nav-link {
+            color: #aaa;
+            padding: 12px 20px;
+            transition: color 420ms cubic-bezier(0.16, 1, 0.3, 1),
+                        background 420ms cubic-bezier(0.16, 1, 0.3, 1),
+                        border-left-color 420ms cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+            border-left: 3px solid transparent;
+            position: relative;
+            font-size: 13px;
+            letter-spacing: 0.8px;
+        }
+        .sidebar .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: linear-gradient(180deg, var(--gold, #d4af37), transparent);
+            transform: scaleY(0);
+            transform-origin: top;
+            transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .sidebar .nav-link:hover {
+            color: #d4af37;
+            background: rgba(212,175,55,0.05);
+            border-left-color: #d4af37;
+            transform: translateX(4px);
+        }
+        .sidebar .nav-link:hover::before,
+        .sidebar .nav-link.active::before {
+            transform: scaleY(1);
+        }
+        .sidebar .nav-link.active {
+            color: #d4af37;
+            border-left-color: #d4af37;
+            background: rgba(212,175,55,0.05);
+            box-shadow: inset 2px 0 0 rgba(212,175,55,0.8);
+        }
+        .sidebar .nav-link.active::after {
+            content: '';
+            position: absolute;
+            left: 20px;
+            right: 20px;
+            bottom: 4px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #d4af37, transparent);
+            opacity: 0.9;
+            transform-origin: left;
+            animation: shimmerSweep 1.8s ease-in-out infinite;
+        }
+        @keyframes shimmerSweep {
+            from { transform: scaleX(0); opacity: 0.4; }
+            50% { transform: scaleX(1); opacity: 1; }
+            to { transform: scaleX(0.6); opacity: 0.8; }
+        }
+        .sidebar .nav-link i { width: 25px; }
+        .sidebar .nav-link[href="#"]:hover {
+            color: #d4af37;
+        }
+
+        
+        .main-content { margin-left: 250px; padding: 30px; }
+
+        
+        #statsContainer .col-md-3:nth-child(1) .stat-card { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
+        #statsContainer .col-md-3:nth-child(2) .stat-card { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
+        #statsContainer .col-md-3:nth-child(3) .stat-card { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
+        #statsContainer .col-md-3:nth-child(4) .stat-card { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both; }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(212,175,55,0.03);
+            position: relative;
+            overflow: hidden;
+            transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 520ms cubic-bezier(0.16, 1, 0.3, 1), border-color 520ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            left: -20%;
+            top: -20%;
+            width: 140%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(212,175,55,0.55), transparent);
+            opacity: 0;
+            transition: opacity 520ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stat-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(212,175,55,0.35);
+            box-shadow: 0 16px 40px rgba(212,175,55,0.12), 0 8px 24px rgba(0,0,0,0.08);
+        }
+        .stat-card:hover::before { opacity: 1; }
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #d4af37;
+            font-family: 'Playfair Display', serif;
+            background-image: linear-gradient(120deg, #d4af37, #fff1bd, #b88b19);
+            background-size: 200% 100%;
+            background-position: 0% 50%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: background-position 600ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stat-card:hover .number {
+            background-position: 100% 50%;
+            transform: translateY(-2px);
+        }
+        .stat-card .label { color: #888; font-size: 14px; }
+        .stat-card i {
+            font-size: 30px;
+            color: #d4af37;
+            opacity: 0.3;
+            transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1), opacity 620ms cubic-bezier(0.16, 1, 0.3, 1), filter 620ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stat-card:hover i {
+            opacity: 0.7;
+            filter: drop-shadow(0 0 10px rgba(212,175,55,0.45));
+            transform: rotate(8deg);
+        }
+
+        
+        .btn-gold {
+            background: linear-gradient(135deg, #d4af37, #c5a030);
+            color: #1a1a1a;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 420ms cubic-bezier(0.16, 1, 0.3, 1), color 420ms cubic-bezier(0.16, 1, 0.3, 1);
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-gold::before,
+        .btn-gold-sm::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.80), transparent);
+            transform: skewX(-30deg);
+            transition: left 780ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-gold:hover::before,
+        .btn-gold-sm:hover::before { left: 130%; }
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(212,175,55,0.4), 0 0 20px rgba(212,175,55,0.4);
+            color: #1a1a1a;
+        }
+        .btn-gold-sm {
+            background: linear-gradient(135deg, #d4af37, #c5a030);
+            color: #1a1a1a;
+            padding: 4px 15px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 12px;
+            transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 420ms cubic-bezier(0.16, 1, 0.3, 1), color 420ms cubic-bezier(0.16, 1, 0.3, 1);
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-gold-sm:hover {
+            transform: translateY(-2px);
+            color: #1a1a1a;
+            box-shadow: 0 10px 40px rgba(212,175,55,0.32), 0 0 16px rgba(212,175,55,0.3);
+        }
+
+        
+        .table-custom {
+            background: #fff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            animation: fadeInUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+        }
+        .table-custom th { background: #f8f6f3; border: none; }
+        .table-custom td { vertical-align: middle; }
+        .table-custom tbody tr {
+            transition: background 420ms cubic-bezier(0.16, 1, 0.3, 1), color 420ms cubic-bezier(0.16, 1, 0.3, 1), transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .table-custom tbody tr:hover {
+            background: linear-gradient(90deg, rgba(212,175,55,0.09), rgba(212,175,55,0.16));
+            color: #1a1a1a;
+        }
+
+        .badge-status {
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            animation: badgePulse 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-confirmed { background: #d1ecf1; color: #0c5460; }
+        .badge-processing { background: #f8d7da; color: #721c24; }
+        .badge-shipped { background: #d4edda; color: #155724; }
+        .badge-outfordelivery { background: #fff3cd; color: #856404; }
+        .badge-delivered { background: #cce5ff; color: #004085; }
+        .badge-cancelled { background: #f8d7da; color: #721c24; }
+
+        
+        .sidebar .nav-link[onclick="logout()"] {
+            transition: color 420ms cubic-bezier(0.16, 1, 0.3, 1), transform 420ms cubic-bezier(0.16, 1, 0.3, 1), background 420ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .sidebar .nav-link[onclick="logout()"]:hover {
+            color: #d4af37;
+            transform: translateX(4px);
+        }
+
+        @media (max-width: 768px) {
+            .marquee-wrap { height: 42px; }
+            .sidebar {
+                position: relative;
+                top: 0;
+                width: 100%;
+                min-height: auto;
+            }
+            .main-content { margin-left: 0; padding: 20px; }
+            body { padding-top: 42px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="marquee-wrap">
+    <div class="marquee-track">
+        <span><i class="fas fa-crown"></i> 100% HUMAN HAIR GUARANTEED</span>
+        <span class="dot">•</span>
+        <span><i class="fas fa-shield-alt"></i> PREMIUM QUALITY WIGS</span>
+        <span class="dot">•</span>
+        <span><i class="fas fa-truck"></i> NATIONWIDE DELIVERY</span>
+        <span class="dot">•</span>
+
+        <span><i class="fas fa-crown"></i> 100% HUMAN HAIR GUARANTEED</span>
+        <span class="dot">•</span>
+        <span><i class="fas fa-shield-alt"></i> PREMIUM QUALITY WIGS</span>
+        <span class="dot">•</span>
+        <span><i class="fas fa-truck"></i> NATIONWIDE DELIVERY</span>
+        <span class="dot">•</span>
+
+        <span><i class="fas fa-crown"></i> 100% HUMAN HAIR GUARANTEED</span>
+        <span class="dot">•</span>
+        <span><i class="fas fa-shield-alt"></i> PREMIUM QUALITY WIGS</span>
+        <span class="dot">•</span>
+        <span><i class="fas fa-truck"></i> NATIONWIDE DELIVERY</span>
+    </div>
+</div>
+
+<div class="sidebar">
+    <div class="brand"><i class="fas fa-crown"></i>THE AURA</div>
+    <nav class="nav flex-column">
+        <a class="nav-link active" href="/admin/dashboard"><i class="fas fa-chart-pie"></i>Dashboard</a>
+        <a class="nav-link" href="/admin/products"><i class="fas fa-box"></i>Products</a>
+        <a class="nav-link" href="/admin/orders"><i class="fas fa-shopping-bag"></i>Orders</a>
+        <a class="nav-link" href="/admin/reviews"><i class="fas fa-star"></i>Reviews</a>
+        <a class="nav-link" href="/" target="_blank"><i class="fas fa-globe"></i>View Site</a>
+        <a class="nav-link" href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</a>
+    </nav>
+</div>
+
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="font-family: 'Playfair Display', serif;">Dashboard</h2>
+        <span class="text-muted">Welcome, Admin</span>
+    </div>
+    
+    <div class="row g-4" id="statsContainer">
+        <div class="col-md-3"><div class="stat-card"><div class="d-flex justify-content-between"><div><div class="number" id="totalProducts">0</div><div class="label">Total Wigs</div></div><i class="fas fa-box"></i></div></div></div>
+        <div class="col-md-3"><div class="stat-card"><div class="d-flex justify-content-between"><div><div class="number" id="totalOrders">0</div><div class="label">Total Orders</div></div><i class="fas fa-shopping-bag"></i></div></div></div>
+        <div class="col-md-3"><div class="stat-card"><div class="d-flex justify-content-between"><div><div class="number" id="pendingOrders">0</div><div class="label">Pending Orders</div></div><i class="fas fa-clock"></i></div></div></div>
+        <div class="col-md-3"><div class="stat-card"><div class="d-flex justify-content-between"><div><div class="number" id="totalRevenue">₦0</div><div class="label">Total Revenue</div></div><i class="fas fa-naira-sign"></i></div></div></div>
+    </div>
+    
+    <div class="mt-4">
+        <h5 style="font-family: 'Playfair Display', serif;">Recent Orders</h5>
+        <div class="table-responsive table-custom">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr>
+                </thead>
+                <tbody id="recentOrders"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStats();
+        loadRecentOrders();
+    });
+
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/admin/stats');
+            const data = await res.json();
+            document.getElementById('totalProducts').textContent = data.totalProducts || 0;
+            document.getElementById('totalOrders').textContent = data.totalOrders || 0;
+            document.getElementById('pendingOrders').textContent = data.pendingOrders || 0;
+            document.getElementById('totalRevenue').textContent = '₦' + (data.totalRevenue || 0).toLocaleString();
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
+    }
+
+    async function loadRecentOrders() {
+        try {
+            const res = await fetch('/api/admin/orders');
+            const orders = await res.json();
+            const tbody = document.getElementById('recentOrders');
+            tbody.innerHTML = orders.slice(0, 5).map(o => `
+                <tr>
+                    <td><strong>${o.orderNumber}</strong></td>
+                    <td>${o.customerName}</td>
+                    <td>₦${o.total.toLocaleString()}</td>
+                    <td><span class="badge-status badge-${o.orderStatus.toLowerCase().replace(/\s+/g, '')}">${o.orderStatus}</span></td>
+                    <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+                    <td><a href="/admin/orders" class="btn-gold-sm">View</a></td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading orders:', error);
+        }
+    }
+
+    function logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            fetch('/api/admin/logout').then(() => window.location.href = '/admin/login');
+        }
+    }
+</script>
+</body>
+</html>

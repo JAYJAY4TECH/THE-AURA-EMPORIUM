@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Manage Reviews | THE AURA EMPORIUM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/fontawesome/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/animations.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f8f6f3; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; border-radius: 20px; padding: 30px; box-shadow: 0 5px 30px rgba(0,0,0,0.05); }
+        h2 { font-family: 'Playfair Display', serif; color: #1a1a1a; margin-bottom: 20px; }
+        h2 i { color: #d4af37; margin-right: 10px; }
+        
+        .review-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 15px 0; }
+        .review-content { flex: 1; }
+        .review-content strong { font-size: 16px; }
+        .review-content .stars { color: #d4af37; font-size: 14px; }
+        .review-content p { color: #555; margin: 5px 0; }
+        .review-content small { color: #999; }
+        
+        .action-btns { display: flex; gap: 10px; }
+        .btn-edit { background: #28a745; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .btn-delete { background: #dc3545; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        
+        .edit-form { background: #faf8f5; padding: 20px; border-radius: 10px; margin: 10px 0; display: none; }
+        .edit-form input, .edit-form select, .edit-form textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; }
+        .btn-save { background: #d4af37; color: #1a1a1a; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-cancel { background: #6c757d; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2><i class="fas fa-star"></i>Manage Reviews</h2>
+    
+    <div id="reviewsList"></div>
+</div>
+
+<script>
+    let allReviews = [];
+
+     
+    async function loadReviews() {
+        try {
+            const res = await fetch('/api/reviews');
+            allReviews = await res.json();
+            renderReviews();
+        } catch (error) {
+            console.error('Error loading reviews:', error);
+            document.getElementById('reviewsList').innerHTML = '<p class="text-center py-5" style="color: #dc3545;">Error loading reviews. Make sure server is running.</p>';
+        }
+    }
+
+     
+    function renderReviews() {
+        const list = document.getElementById('reviewsList');
+        
+        if (allReviews.length === 0) {
+            list.innerHTML = '<p class="text-center py-5" style="color: #888;">No reviews yet.</p>';
+            return;
+        }
+        
+        list.innerHTML = allReviews.map((review, index) => `
+            <div class="review-row">
+                <div class="review-content">
+                    <strong>${review.name}</strong>
+                    <div class="stars">${'★'.repeat(parseInt(review.rating))}${'☆'.repeat(5 - parseInt(review.rating))}</div>
+                    <p>"${review.comment}"</p>
+                    <small>${new Date(review.date).toLocaleDateString()}</small>
+                </div>
+                <div class="action-btns">
+                    <button class="btn-edit" onclick="openEditForm(${index})"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn-delete" onclick="deleteReview('${review._id}')"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+            </div>
+            <div class="edit-form" id="editForm-${index}">
+                <input type="text" id="editName-${index}" value="${review.name}" placeholder="Name">
+                <select id="editRating-${index}">
+                    <option value="5" ${review.rating == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
+                    <option value="4" ${review.rating == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option>
+                    <option value="3" ${review.rating == 3 ? 'selected' : ''}>⭐⭐⭐</option>
+                    <option value="2" ${review.rating == 2 ? 'selected' : ''}>⭐⭐</option>
+                    <option value="1" ${review.rating == 1 ? 'selected' : ''}>⭐</option>
+                </select>
+                <textarea id="editComment-${index}" rows="3">${review.comment}</textarea>
+                <button class="btn-save" onclick="saveEdit('${review._id}', ${index})"><i class="fas fa-check"></i> Save</button>
+                <button class="btn-cancel" onclick="closeEditForm(${index})">Cancel</button>
+            </div>
+        `).join('');
+    }
+
+    
+    function openEditForm(index) {
+        document.getElementById(`editForm-${index}`).style.display = 'block';
+    }
+
+     
+    function closeEditForm(index) {
+        document.getElementById(`editForm-${index}`).style.display = 'none';
+    }
+
+     
+    async function saveEdit(reviewId, index) {
+        const name = document.getElementById(`editName-${index}`).value;
+        const rating = document.getElementById(`editRating-${index}`).value;
+        const comment = document.getElementById(`editComment-${index}`).value;
+        
+        try {
+            const res = await fetch(`/api/reviews/${reviewId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, rating, comment })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('✅ Review updated!');
+                loadReviews();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('Network Error.');
+        }
+    }
+
+    
+    async function deleteReview(reviewId) {
+        if (confirm('Are you sure you want to delete this review?')) {
+            try {
+                const res = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ Review deleted!');
+                    loadReviews();
+                } else {
+                    alert('Error deleting review.');
+                }
+            } catch (error) {
+                alert('Network Error.');
+            }
+        }
+    }
+
+    
+    loadReviews();
+</script>
+</body>
+</html>
