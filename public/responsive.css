@@ -169,6 +169,7 @@ table {
 .nav-actions .cart-icon > .fas,
 .nav-actions .cart-icon > .far {
   font-size: 24px;
+  font-weight: 900;
   line-height: 1;
   transition: filter 180ms ease, color 180ms ease;
 }
@@ -212,7 +213,7 @@ table {
   .navbar-custom .nav-link.nav-icon > .far,
   .nav-actions .cart-icon > .fas,
   .nav-actions .cart-icon > .far {
-    font-size: 21px;
+    font-size: 20px;
   }
 
   .cart-badge {

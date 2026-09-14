@@ -693,7 +693,13 @@
         const socket = io();
 
          
-        document.getElementById('trackForm').addEventListener('submit', async (e) => {
+        const trackForm = document.getElementById('trackForm');
+        const resultContainer = document.getElementById('resultContainer');
+        const trackButtonMarkup = '<i class="fas fa-search me-2"></i>Track Order';
+
+        trackForm.addEventListener('submit', trackOrder);
+
+        async function trackOrder(e) {
             e.preventDefault();
             
             const orderId = document.getElementById('orderId').value.trim();
@@ -703,15 +709,29 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Searching...';
             btn.disabled = true;
 
-            const container = document.getElementById('resultContainer');
+            const container = resultContainer;
             container.innerHTML = '';
+            container.innerHTML = `
+                <div class="order-result-card text-center" role="status" aria-live="polite">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--gold);"></i>
+                    <h4 class="mt-3">Finding your order...</h4>
+                    <p style="color: var(--muted);">This usually takes just a moment.</p>
+                </div>
+            `;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
 
             try {
                 const res = await fetch('/api/track-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: orderId, email: email })
+                    body: JSON.stringify({ orderId: orderId, email: email }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
+
+                if (!res.ok) throw new Error('The tracking service is temporarily unavailable.');
 
                 const data = await res.json();
 
@@ -799,17 +819,28 @@
                     updateTimeline(data.orderStatus);
                 }
             } catch (error) {
-                container.innerHTML = `
-                    <div class="order-result-card text-center" style="color: #dc3545;">
-                        <h4>Network Error</h4>
-                        <p style="color: var(--muted);">Cannot reach the server. Please make sure your server is running.</p>
-                    </div>
-                `;
+                const message = error.name === 'AbortError'
+                    ? 'The request took too long. Please check your connection and try again.'
+                    : 'We could not load your order right now. Please try again in a moment.';
+                showTrackingError(message);
             } finally {
-                btn.innerHTML = '<i class="fas fa-search me-2"></i>Track Order';
+                clearTimeout(timeoutId);
+                btn.innerHTML = trackButtonMarkup;
                 btn.disabled = false;
             }
-        });
+        }
+
+        function showTrackingError(message) {
+            resultContainer.innerHTML = `
+                <div class="order-result-card text-center" role="alert" style="color: #dc3545;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 30px;"></i>
+                    <h4 class="mt-3">We couldn’t load your order</h4>
+                    <p style="color: var(--muted);">${message}</p>
+                    <button type="button" class="btn-gold mt-2" id="tryTrackingAgain">Try Again</button>
+                </div>
+            `;
+            document.getElementById('tryTrackingAgain').addEventListener('click', () => trackForm.requestSubmit());
+        }
 
         const trackingParams = new URLSearchParams(window.location.search);
         const linkedOrderId = trackingParams.get('orderId');
@@ -818,7 +849,7 @@
         if (linkedOrderId && linkedEmail) {
             document.getElementById('orderId').value = linkedOrderId;
             document.getElementById('email').value = linkedEmail;
-            document.getElementById('trackForm').requestSubmit();
+            trackForm.requestSubmit();
         }
 
         
