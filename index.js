@@ -50,7 +50,20 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve public/ with no-cache for HTML/CSS/JS so edits show up without hard-refresh.
+// Libraries (fontawesome) and uploads stay cacheable.
+app.use(express.static(path.join(__dirname, 'public'), {
+    etag: true,
+    lastModified: true,
+    maxAge: 0,
+    setHeaders: (res, filePath) => {
+        if (/\.(html|css|js|json)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 app.use('/fontawesome', express.static(path.join(__dirname, 'node_modules/@fortawesome/fontawesome-free')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

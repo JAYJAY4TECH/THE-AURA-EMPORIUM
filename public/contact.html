@@ -142,18 +142,7 @@
             text-shadow: 0 0 10px rgba(212,175,55,0.85);
         }
 
-        .cart-badge {
-            background: var(--gold);
-            color: var(--ink);
-            border-radius: 50%;
-            padding: 2px 8px;
-            font-size: 11px;
-            font-weight: 700;
-            margin-left: 5px;
-            position: absolute;
-            top: -7px;
-            right: -8px;
-        }
+        /* Cart icon + badge: see /responsive.css (single source of truth). */
 
         .page-header {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
@@ -544,7 +533,7 @@
                 <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
                 <li class="nav-item"><a class="nav-link" href="/reviews">Reviews</a></li>
                 <li class="nav-item"><a class="nav-link active" href="/contact">Contact</a></li>
-                <li class="nav-item"><a class="nav-link" href="/cart"><i class="fas fa-shopping-cart"></i><span class="cart-badge" id="cartCount">0</span></a></li>
+                <li class="nav-item"><a class="nav-link nav-icon" href="/cart"><i class="fas fa-shopping-cart"></i><span class="cart-badge" id="cartCount">0</span></a></li>
             </ul>
         </div>
     </div>

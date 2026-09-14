@@ -153,29 +153,58 @@ table {
   .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 
-/* Shared navbar cart control: consistent size, touch target, and badge on every page. */
+/* Shared navbar cart control: consistent size, touch target, and badge on every page.
+   Single source of truth — do not redeclare .cart-icon / .cart-badge inline in HTML. */
+.cart-icon,
 .navbar-custom .nav-link.nav-icon,
-.nav-actions .cart-icon {
+.nav-actions .cart-icon,
+.nav-actions a.cart-icon {
   position: relative;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
+  font-size: 24px !important;
+  color: inherit;
+  text-decoration: none;
 }
 
+/* Keep badge anchored when a plain .nav-link wraps it (e.g. contact.html). */
+.navbar-custom .nav-link:has(> .cart-badge),
+.nav-actions a:has(> .cart-badge) {
+  position: relative;
+}
+
+.cart-icon > i,
+.cart-icon > .fas,
+.cart-icon > .far,
+.cart-icon > .fa-solid,
+.cart-icon > .fa,
+.navbar-custom .nav-link.nav-icon > i,
 .navbar-custom .nav-link.nav-icon > .fas,
 .navbar-custom .nav-link.nav-icon > .far,
+.navbar-custom .nav-link.nav-icon > .fa-solid,
+.nav-actions .cart-icon > i,
 .nav-actions .cart-icon > .fas,
-.nav-actions .cart-icon > .far {
-  font-size: 24px;
+.nav-actions .cart-icon > .far,
+.nav-actions .cart-icon > .fa-solid,
+.nav-actions a.cart-icon > i {
+  font-size: 24px !important;
   font-weight: 900;
   line-height: 1;
   transition: filter 180ms ease, color 180ms ease;
 }
 
+.cart-icon:hover,
+.navbar-custom .nav-link.nav-icon:hover,
+.nav-actions .cart-icon:hover {
+  color: #d4af37;
+}
+
 .navbar-custom .nav-link.nav-icon:hover > i,
-.nav-actions .cart-icon:hover > i {
+.nav-actions .cart-icon:hover > i,
+.cart-icon:hover > i {
   color: #d4af37;
   filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.55));
 }
@@ -197,11 +226,14 @@ table {
   background: #d4af37;
   color: #0d0d0d;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 @media (max-width: 768px) {
+  .cart-icon,
   .navbar-custom .nav-link.nav-icon,
   .nav-actions .cart-icon {
     min-width: 44px;
@@ -209,11 +241,31 @@ table {
     margin-top: 4px;
   }
 
+  .cart-icon > i,
+  .cart-icon > .fas,
+  .cart-icon > .far,
+  .cart-icon > .fa-solid,
+  .cart-icon > .fa,
+  .cart-icon i[class*="fa-"],
+  .navbar-custom .nav-link.nav-icon > i,
   .navbar-custom .nav-link.nav-icon > .fas,
   .navbar-custom .nav-link.nav-icon > .far,
+  .navbar-custom .nav-link.nav-icon > .fa-solid,
+  .navbar-custom .nav-link.nav-icon > .fa,
+  .navbar-custom .nav-link.nav-icon i[class*="fa-"],
+  .nav-actions .cart-icon > i,
   .nav-actions .cart-icon > .fas,
-  .nav-actions .cart-icon > .far {
-    font-size: 20px;
+  .nav-actions .cart-icon > .far,
+  .nav-actions .cart-icon > .fa-solid,
+  .nav-actions .cart-icon > .fa,
+  .nav-actions .cart-icon i[class*="fa-"],
+  .nav-actions a.cart-icon > i,
+  .nav-actions a.cart-icon i[class*="fa-"] {
+    font-size: 22px !important;
+    font-weight: 900 !important;
+    -webkit-text-stroke: 1px currentColor;
+    paint-order: stroke fill;
+    text-shadow: 0 0 0.6px currentColor;
   }
 
   .cart-badge {
