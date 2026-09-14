@@ -424,6 +424,7 @@
         }
     </style>
     <link rel="stylesheet" href="/responsive.css">
+    <link rel="stylesheet" href="/toast.css">
 </head>
 <body>
 
@@ -574,7 +575,7 @@
             const email = document.getElementById('email').value;
             const totalAmount = subtotal;
             
-            if (!email) { alert('Please enter your email address.'); return; }
+            if (!email) { showToast('Please enter your email address.', 'error'); return; }
 
             const btn = document.getElementById('placeOrderBtn');
             btn.disabled = true;
@@ -604,20 +605,20 @@
                     channels: ['card', 'bank_transfer'],
                     ref: initData.reference,
                     callback: function(response) {
-                        alert('✅ Payment successful! Reference: ' + response.reference);
+                        showToast('Payment successful! Reference: ' + response.reference, 'success');
                         saveOrderToDatabase(response.reference);
                     },
                     onClose: function() {
                         btn.disabled = false;
                         btn.textContent = 'Pay Now';
-                        alert('Payment window closed.');
+                        showToast('Payment window closed.', 'info');
                     }
                 });
                 handler.openIframe();
             } catch (error) {
                 btn.disabled = false;
                 btn.textContent = 'Pay Now';
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
  
@@ -655,10 +656,10 @@
                     localStorage.removeItem('cart');
                     window.location.href = './success.html?orderId=' + data.orderId;
                 } else {
-                    alert('Order saving failed: ' + data.error);
+                    showToast('Order saving failed: ' + data.error, 'error');
                 }
             } catch (error) {
-                alert('Network Error: ' + error.message);
+                showToast('Network error: ' + error.message, 'error');
             }
         }
 
@@ -670,5 +671,6 @@
         loadCheckout();
         updateCartCount();
     </script>
+    <script src="/toast.js"></script>
 </body>
 </html>

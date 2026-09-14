@@ -573,31 +573,9 @@
     cursor: not-allowed;
   }
 
-  #toast {
-    visibility: hidden;
-    min-width: 260px;
-    background: var(--dark);
-    color: var(--gold);
-    text-align: center;
-    border-radius: 10px;
-    padding: 16px 22px;
-    position: fixed;
-    z-index: 9999;
-    left: 50%;
-    bottom: 30px;
-    transform: translateX(-50%);
-    font-size: 14px;
-    font-weight: 600;
-    border-left: 4px solid var(--gold);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    letter-spacing: .5px;
-  }
-  #toast.show {
-    visibility: visible;
-    animation: fadein .5s, fadeout .5s 2.5s;
-  }
-  @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
-  @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+  /* Legacy #toast replaced by shared /toast.css + /toast.js (showToast(msg, type)).
+     Kept as a no-op guard so any cached JS referencing #toast won't break layout. */
+  #toast { display: none !important; }
 
   .whatsapp-float {
     position: fixed;
@@ -646,6 +624,7 @@
   .footer a:hover { color: var(--gold); padding-left: 4px; }
 </style>
     <link rel="stylesheet" href="/responsive.css">
+    <link rel="stylesheet" href="/toast.css">
 </head>
 <body>
 
@@ -704,7 +683,7 @@
   <i class="fab fa-whatsapp"></i>
 </a>
 
-<div id="toast">✓ Added to your cart</div>
+<div id="toast" hidden aria-hidden="true">Added to your cart</div>
 
 <footer class="footer">
   <div class="container">
@@ -946,7 +925,7 @@ function addToCart(productId, image, name, price) {
 
   localStorage.setItem('cart', JSON.stringify(cart));
   updateCartCount();
-  showToast(`✓ ${name.substring(0, 28)}${name.length > 28 ? '…' : ''} added to cart`);
+  showToast(name.substring(0, 28) + (name.length > 28 ? '…' : '') + ' added to cart', 'success');
 }
 
 function updateCartCount() {
@@ -956,18 +935,11 @@ function updateCartCount() {
   if (el) el.textContent = total;
 }
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg || '✓ Added to your cart';
-  t.className = 'show';
-  clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(() => t.className = '', 3000);
-}
-
 window.addEventListener('load', () => {
   loadProducts();
   updateCartCount();
 });
 </script>
+<script src="/toast.js"></script>
 </body>
 </html>

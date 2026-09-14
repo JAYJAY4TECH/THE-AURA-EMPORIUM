@@ -31,6 +31,7 @@
         .btn-cancel { background: #6c757d; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
     </style>
     <link rel="stylesheet" href="/responsive.css">
+    <link rel="stylesheet" href="/toast.css">
 </head>
 <body>
 
@@ -118,13 +119,13 @@
             const data = await res.json();
             
             if (data.success) {
-                alert('✅ Review updated!');
+                showToast('Review updated!', 'success');
                 loadReviews();
             } else {
-                alert('Error: ' + data.error);
+                showToast('Error: ' + data.error, 'error');
             }
         } catch (error) {
-            alert('Network Error.');
+            showToast('Network error. Please try again.', 'error');
         }
     }
 
@@ -136,19 +137,20 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    alert('✅ Review deleted!');
+                    showToast('Review deleted!', 'success');
                     loadReviews();
                 } else {
-                    alert('Error deleting review.');
+                    showToast('Error deleting review.', 'error');
                 }
             } catch (error) {
-                alert('Network Error.');
+                showToast('Network error. Please try again.', 'error');
             }
         }
     }
 
     
     loadReviews();
-</script>
+    </script>
+    <script src="/toast.js"></script>
 </body>
 </html>

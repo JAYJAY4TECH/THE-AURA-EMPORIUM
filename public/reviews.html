@@ -433,6 +433,7 @@
         }
     </style>
     <link rel="stylesheet" href="/responsive.css">
+    <link rel="stylesheet" href="/toast.css">
 </head>
 <body>
 
@@ -590,22 +591,23 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    alert('✅ Thank you for your review!');
+                    showToast('Thank you for your review!', 'success');
                     this.reset();
                     loadReviews();
                     
                     const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
                     modal.hide();
                 } else {
-                    alert('Error: ' + data.error);
+                    showToast('Error: ' + data.error, 'error');
                 }
             } catch (error) {
-                alert('Network Error.');
+                showToast('Network error. Please try again.', 'error');
             }
         });
 
          
         loadReviews();
     </script>
+    <script src="/toast.js"></script>
 </body>
 </html>

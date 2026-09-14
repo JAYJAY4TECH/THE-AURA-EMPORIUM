@@ -347,6 +347,7 @@
         }
     </style>
     <link rel="stylesheet" href="/responsive.css">
+    <link rel="stylesheet" href="/toast.css">
 </head>
 <body>
 
@@ -410,17 +411,18 @@
             const data = await res.json();
             
             if (data.success) {
-                alert('✅ Order status updated to ' + status);
+                showToast('Order status updated to ' + status + '.', 'success');
                 loadOrders();
             } else {
-                alert('Error updating order.');
+                showToast('Error updating order.', 'error');
             }
         } catch (error) {
-            alert('Network Error.');
+            showToast('Network error. Please try again.', 'error');
         }
     }
 
     window.onload = loadOrders;
-</script>
+    </script>
+    <script src="/toast.js"></script>
 </body>
 </html>
