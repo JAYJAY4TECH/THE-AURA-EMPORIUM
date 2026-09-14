@@ -1,0 +1,123 @@
+/* Shared responsive safeguards for every customer and admin page. */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { overflow-x: hidden; }
+
+body {
+  min-width: 0;
+  overflow-x: clip;
+}
+
+img, picture, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+input, select, textarea, button {
+  max-width: 100%;
+}
+
+table {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .container, .container-fluid {
+    width: 100%;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .navbar-custom .container, .navbar-custom .container-fluid {
+    gap: 8px;
+  }
+
+  .navbar-toggler {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .navbar-collapse {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(26, 26, 26, 0.98);
+  }
+
+  .navbar-nav, .navbar-nav.align-items-lg-center {
+    align-items: stretch !important;
+  }
+
+  .navbar-custom .nav-link {
+    display: block;
+    padding: 11px 8px !important;
+  }
+
+  h1 { font-size: clamp(2rem, 10vw, 2.75rem) !important; }
+  h2 { font-size: clamp(1.65rem, 7vw, 2.15rem); }
+  .hero h1, .page-hero h1, .page-header h1 { font-size: clamp(2.1rem, 11vw, 3rem) !important; }
+
+  .hero, .page-hero, .page-header {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .hero-buttons, .actions, .action-btns, .admin-bar, .product-actions,
+  .d-flex.justify-content-between.align-items-center {
+    gap: 10px;
+  }
+
+  .hero-buttons .btn, .actions .btn, .actions a,
+  .action-btns button, .action-btns .btn {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .review-row, .product-item, .product-row {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .review-row .action-btns, .product-item .product-actions,
+  .product-row .product-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .row-2, .row-3, .cirvee-course-section .course-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .product-card, .explore-card, .review-card {
+    min-width: 0;
+  }
+
+  .table-wrap, .table-responsive, .container:has(table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table { min-width: 560px; }
+
+  .whatsapp-float {
+    bottom: 18px !important;
+    right: 18px !important;
+    width: 52px !important;
+    height: 52px !important;
+    font-size: 25px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .container, .container-fluid {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .product-grid { grid-template-columns: 1fr !important; }
+  .btn, button, input, select, textarea { min-height: 44px; }
+}
