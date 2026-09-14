@@ -118,6 +118,37 @@ table {
     padding-right: 12px !important;
   }
 
-  .product-grid { grid-template-columns: 1fr !important; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .btn, button, input, select, textarea { min-height: 44px; }
+}
+
+/* Site-wide responsive baseline: premium spacing, readable type, and touch targets. */
+:where(.navbar-custom .nav-link) {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+:where(.btn, button, input, select, textarea) { min-height: 44px; }
+
+:where(input, select, textarea) {
+  width: 100%;
+  min-height: 48px;
+}
+
+.product-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 1100px) {
+  .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 768px) {
+  :where(section.py-5, section.py-6, .section-padding) {
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+  }
+
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }

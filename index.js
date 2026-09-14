@@ -9,7 +9,8 @@ const session = require('express-session');
 const methodOverride = require('method-override');
 const path = require('path');
 const multer = require('multer');
-const fs = require('fs');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -20,6 +21,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = Number(process.env.PORT) || 3456;
+const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 
 
 app.get(['/LOGO.jpeg', '/logo.jpeg'], (req, res) => {
@@ -75,14 +77,19 @@ app.use(session({
 }));
 
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = path.join(__dirname, 'uploads/products');
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, 'wig-' + Date.now() + path.extname(file.originalname));
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+        folder: 'aura-emporium/products',
+        resource_type: 'image',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        public_id: (req, file) => `wig-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
     }
 });
 
@@ -371,6 +378,7 @@ app.post('/api/paystack/verify', async (req, res) => {
             await order.save();
             console.log(` Order Created: ${order.orderNumber}`);
 
+            const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`;
             
             const mailOptions = {
                 from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER}>`,
@@ -414,7 +422,7 @@ app.post('/api/paystack/verify', async (req, res) => {
                                 <p>You can track your order anytime using your Order Number.</p>
                                 
                                 <div style="text-align: center; margin: 20px 0;">
-                                    <a href="https://theauraemporium.com/track-order" class="btn">Track Your Order</a>
+                                    <a href="${trackingUrl}" class="btn">Track Your Order</a>
                                 </div>
                                 
                                 <p>Warm regards,<br><strong>THE AURA EMPORIUM Team</strong></p>
@@ -471,7 +479,7 @@ app.post('/api/admin/products', upload.array('images', 5), async (req, res) => {
     try {
         const { name, price, length, weight, laceType, category } = req.body;
         const uploadedImages = Array.isArray(req.files)
-            ? req.files.map(file => '/uploads/products/' + file.filename)
+            ? req.files.map(file => file.path)
             : [];
 
         const product = new Product({
@@ -504,9 +512,40 @@ app.get('/api/admin/products', async (req, res) => {
     }
 });
 
+function cloudinaryPublicIdFromUrl(imageUrl) {
+    try {
+        const url = new URL(imageUrl);
+        if (!url.hostname.endsWith('.cloudinary.com')) return null;
+
+        const uploadPath = url.pathname.split('/image/upload/')[1];
+        if (!uploadPath) return null;
+
+        const pathParts = uploadPath.split('/');
+        const versionIndex = pathParts.findIndex(part => /^v\d+$/.test(part));
+        const publicIdPath = versionIndex >= 0
+            ? pathParts.slice(versionIndex + 1).join('/')
+            : uploadPath;
+
+        return decodeURIComponent(publicIdPath.replace(/\.[^/.]+$/, ''));
+    } catch {
+        return null;
+    }
+}
+
 app.delete('/api/admin/products/:id', async (req, res) => {
     try {
-        await Product.findByIdAndDelete(req.params.id);
+        const product = await Product.findById(req.params.id);
+        if (!product) return res.status(404).json({ success: false, error: 'Product not found' });
+
+        const imagePublicIds = product.images
+            .map(cloudinaryPublicIdFromUrl)
+            .filter(Boolean);
+
+        await Promise.all(imagePublicIds.map(publicId =>
+            cloudinary.uploader.destroy(publicId, { resource_type: 'image', invalidate: true })
+        ));
+
+        await product.deleteOne();
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -155,9 +155,9 @@
          
         .cart-item {
             background: #fff;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
+            border-radius: 18px;
+            padding: 30px;
+            margin-bottom: 20px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
             border: 1px solid rgba(0,0,0,0.03);
             transition: transform 0.6s var(--ease-luxury), box-shadow 0.6s var(--ease-luxury), background 0.6s var(--ease-luxury), border-color 0.6s var(--ease-luxury);
@@ -202,15 +202,25 @@
             transform: scale(1.05);
         }
 
-        .cart-item .item-name { font-weight: 700; font-size: 18px; font-family: 'Playfair Display', serif; }
-        .cart-item .item-price { color: #d4af37; font-weight: 700; font-size: 18px; }
+        .cart-item .item-name { font-weight: 700; font-size: clamp(1.2rem, 1.7vw, 1.45rem); line-height: 1.25; font-family: 'Playfair Display', serif; }
+        .cart-item .item-meta { margin-top: 7px; font-size: 0.9rem; }
+        .cart-item .item-price { color: #d4af37; font-weight: 700; font-size: clamp(1.15rem, 1.6vw, 1.4rem); white-space: nowrap; }
+        .cart-item-layout { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: clamp(18px, 2.5vw, 34px); }
+        .cart-product { display: flex; align-items: center; min-width: 0; gap: 20px; }
+        .cart-product-copy { min-width: 0; }
+        .cart-quantity { display: flex; align-items: center; justify-content: center; gap: 14px; }
+        .cart-quantity-value { min-width: 20px; text-align: center; font-size: 1.05rem; }
 
         .cart-item .quantity-btn {
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
             border-radius: 50%;
             border: 1px solid #ddd;
             background: #fff;
+            font-size: 1.2rem;
+            line-height: 1;
             transition: all 0.3s var(--ease-luxury);
         }
 
@@ -225,6 +235,9 @@
             color: #dc3545;
             background: none;
             border: none;
+            width: 44px;
+            min-width: 44px;
+            min-height: 44px;
             font-size: 20px;
             transition: all 0.4s var(--ease-luxury);
         }
@@ -235,12 +248,13 @@
             animation: shakeRed 0.38s var(--ease-luxury);
         }
 
-        .cart-item img { width: 80px; height: 80px; object-fit: cover; border-radius: 10px; transition: transform 0.55s var(--ease-luxury), box-shadow 0.55s var(--ease-luxury); }
+        .cart-item img { width: 120px; height: 120px; flex: 0 0 120px; object-fit: cover; border-radius: 14px; transition: transform 0.55s var(--ease-luxury), box-shadow 0.55s var(--ease-luxury); }
 
         
         .cart-summary {
             background: #fff;
-            border-radius: 15px;
+            min-width: 380px;
+            border-radius: 18px;
             padding: 30px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
             position: sticky;
@@ -256,7 +270,7 @@
         }
 
         .cart-summary .total {
-            font-size: 28px;
+            font-size: clamp(2rem, 3vw, 2.5rem);
             font-weight: 700;
             color: #d4af37;
             font-family: 'Playfair Display', serif;
@@ -271,7 +285,8 @@
         .btn-gold {
             background: linear-gradient(135deg, #d4af37, #c5a030);
             color: #1a1a1a;
-            padding: 14px 40px;
+            min-height: 56px;
+            padding: 14px 32px;
             border: none;
             border-radius: 50px;
             font-weight: 700;
@@ -313,7 +328,8 @@
         .btn-dark-custom {
             background: #1a1a1a;
             color: #fff;
-            padding: 14px 40px;
+            min-height: 56px;
+            padding: 14px 32px;
             border: none;
             border-radius: 50px;
             font-weight: 600;
@@ -477,13 +493,24 @@
                 padding-top: 42px;
             }
 
-            .page-header { padding: 100px 0 40px; }
-            .page-header h1 { font-size: 28px; }
-            .cart-item { text-align: center; }
-            .cart-item .text-end { text-align: center !important; }
-            .cart-summary { position: relative; top: 0; margin-top: 30px; }
+            .page-header { padding: 84px 0 32px; }
+            .page-header h1 { font-size: clamp(2rem, 9vw, 2.5rem); }
+            .cart-item { padding: 20px; }
+            .cart-item-layout { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 18px 12px; }
+            .cart-product { grid-column: 1 / -1; gap: 15px; }
+            .cart-quantity { justify-content: flex-start; gap: 12px; }
+            .cart-price { justify-self: end; align-self: center; }
+            .cart-remove { justify-self: end; }
+            .cart-item img { width: 90px; height: 90px; flex-basis: 90px; }
+            .cart-summary { min-width: 0; width: 100%; position: relative; top: 0; margin-top: 24px; padding: 24px 20px; }
             .cart-item img { transform: none; }
             .marquee-bar { height: 42px; }
+        }
+
+        @media (max-width: 420px) {
+            .cart-product { align-items: flex-start; }
+            .cart-item .item-name { font-size: 1.15rem; padding-right: 20px; }
+            .cart-quantity { gap: 10px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -549,11 +576,11 @@
     </section>
 
     
-    <section class="py-5">
+    <section class="py-5 cart-section">
         <div class="container">
-            <div class="row">
+            <div class="row g-4 align-items-start">
                 <div class="col-lg-8" id="cartItems"></div>
-                <div class="col-lg-4">
+                <div class="col-lg-4 cart-summary-column">
                     <div class="cart-summary">
                         <h5 class="mb-3">Order Summary</h5>
                         <hr>
@@ -673,28 +700,24 @@
                 
                 return `
                     <div class="cart-item">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center">
-                                    <img src="${productImage}" alt="${productName}" class="me-3">
-                                    <div>
+                        <div class="cart-item-layout">
+                            <div class="cart-product">
+                                    <img src="${productImage}" alt="${productName}">
+                                    <div class="cart-product-copy">
                                         <div class="item-name">${productName}</div>
-                                        <div class="text-muted small">${product ? (product.category || 'Luxury Wig') : 'Luxury Wig'}</div>
+                                        <div class="item-meta text-muted">${product ? (product.category || 'Luxury Wig') : 'Luxury Wig'}</div>
                                     </div>
-                                </div>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <button class="quantity-btn" onclick="updateQuantity('${item.productId}', -1)">-</button>
-                                    <span class="mx-3 fw-bold">${item.quantity}</span>
-                                    <button class="quantity-btn" onclick="updateQuantity('${item.productId}', 1)">+</button>
-                                </div>
+                            <div class="cart-quantity">
+                                    <button class="quantity-btn" type="button" aria-label="Decrease ${productName} quantity" onclick="updateQuantity('${item.productId}', -1)">−</button>
+                                    <span class="cart-quantity-value fw-bold">${item.quantity}</span>
+                                    <button class="quantity-btn" type="button" aria-label="Increase ${productName} quantity" onclick="updateQuantity('${item.productId}', 1)">+</button>
                             </div>
-                            <div class="col-md-2 text-center">
+                            <div class="cart-price">
                                 <div class="item-price">₦${(productPrice * item.quantity).toLocaleString()}</div>
                             </div>
-                            <div class="col-md-1 text-center">
-                                <button class="remove-btn" onclick="removeItem('${item.productId}')"><i class="fas fa-times"></i></button>
+                            <div class="cart-remove">
+                                <button class="remove-btn" type="button" aria-label="Remove ${productName} from cart" onclick="removeItem('${item.productId}')"><i class="fas fa-times"></i></button>
                             </div>
                         </div>
                     </div>

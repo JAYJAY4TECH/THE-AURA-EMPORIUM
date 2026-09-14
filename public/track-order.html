@@ -811,6 +811,16 @@
             }
         });
 
+        const trackingParams = new URLSearchParams(window.location.search);
+        const linkedOrderId = trackingParams.get('orderId');
+        const linkedEmail = trackingParams.get('email');
+
+        if (linkedOrderId && linkedEmail) {
+            document.getElementById('orderId').value = linkedOrderId;
+            document.getElementById('email').value = linkedEmail;
+            document.getElementById('trackForm').requestSubmit();
+        }
+
         
         function updateTimeline(status) {
              
