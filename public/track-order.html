@@ -720,7 +720,7 @@
             `;
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
 
             try {
                 const res = await fetch('/api/track-order', {
@@ -736,12 +736,7 @@
                 const data = await res.json();
 
                 if (!data.success) {
-                    container.innerHTML = `
-                        <div class="order-result-card text-center" style="color: #dc3545;">
-                            <h4>Order Not Found</h4>
-                            <p style="color: var(--muted);">PLEASE CHECK IF YOUR ORDER ID AND MAIL IS CORRECT</p>
-                        </div>
-                    `;
+                    showTrackingError("We couldn't find your order quickly. Please check your Order ID and email, then try again.");
                 } else {
                    
                     socket.emit('track-order', data.orderNumber);
@@ -819,10 +814,7 @@
                     updateTimeline(data.orderStatus);
                 }
             } catch (error) {
-                const message = error.name === 'AbortError'
-                    ? 'The request took too long. Please check your connection and try again.'
-                    : 'We could not load your order right now. Please try again in a moment.';
-                showTrackingError(message);
+                showTrackingError("We couldn't find your order quickly. Please check your Order ID and email, then try again.");
             } finally {
                 clearTimeout(timeoutId);
                 btn.innerHTML = trackButtonMarkup;

@@ -165,6 +165,8 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
+orderSchema.index({ orderNumber: 1 });
+
 orderSchema.pre('save', async function(next) {
     if (!this.orderNumber) {
         const Order = mongoose.model('Order');
@@ -768,8 +770,12 @@ app.post('/api/track-order', async (req, res) => {
         const orderId = String(req.body.orderId || '').trim();
         const email = String(req.body.email || '').trim().toLowerCase();
         const notFoundMessage = 'PLEASE CHECK IF YOUR ORDER ID AND MAIL IS CORRECT';
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ success: false, error: 'Order tracking is temporarily unavailable. Please try again.' });
+        }
         
-        const order = await Order.findOne({ orderNumber: orderId });
+        const order = await Order.findOne({ orderNumber: orderId }).lean();
         if (!order) return res.json({ success: false, error: notFoundMessage });
         
         const emailMatches = email && order.customerEmail.toLowerCase() === email;
