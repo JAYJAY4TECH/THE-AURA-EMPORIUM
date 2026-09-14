@@ -122,6 +122,8 @@
     text-decoration: none;
     letter-spacing: 2px;
     white-space: nowrap;
+    min-width: 0;
+    flex: 1 1 auto;
   }
   .brand .aura { color: #fff; font-weight: 300; }
   .brand i { margin-right: 10px; }
@@ -149,6 +151,36 @@
 
   @media (max-width: 900px) {
     .nav-actions a span.label { display: none; }
+    /* Keep brand + actions on one row so the cart never gets pushed off-screen. */
+    .navbar-custom .container-fluid {
+      gap: 12px;
+      padding: 0 16px;
+      min-width: 0;
+    }
+    .navbar-custom .brand {
+      font-size: 17px;
+      letter-spacing: 1px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .navbar-custom .brand i { margin-right: 6px; }
+    .nav-actions {
+      gap: 12px;
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+    .nav-actions a {
+      min-width: 44px;
+      min-height: 44px;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .navbar-custom { padding: 12px 0; }
+    .navbar-custom .container-fluid { gap: 8px; padding: 0 12px; }
+    .navbar-custom .brand { font-size: 15px; }
+    .nav-actions { gap: 8px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
