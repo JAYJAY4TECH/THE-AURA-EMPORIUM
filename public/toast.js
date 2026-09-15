@@ -1,8 +1,4 @@
-/* Shared toast notification — single source of truth.
- * Usage: showToast(msg, type) where type is 'success' | 'error' | 'info'.
- * Slides in, auto-dismisses after ~3.2s, dismissible via close button.
- * Safe to include on any page; no dependencies.
- */
+ 
 (function () {
   var WRAP_ID = 'auraToastWrap';
   var DEFAULT_MS = 3200;
