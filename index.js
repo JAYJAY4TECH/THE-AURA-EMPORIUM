@@ -208,6 +208,7 @@ const reviewSchema = new mongoose.Schema({
     name: { type: String, required: true },
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, required: true },
+    visitorId: { type: String, default: null },
     date: { type: Date, default: Date.now }
 });
 
@@ -626,8 +627,8 @@ app.get('/api/reviews', async (req, res) => {
 
 app.post('/api/reviews', async (req, res) => {
     try {
-        const { name, rating, comment } = req.body;
-        const review = new Review({ name, rating, comment });
+        const { name, rating, comment, visitorId } = req.body;
+        const review = new Review({ name, rating, comment, visitorId: visitorId || null });
         await review.save();
         res.status(201).json({ success: true, review });
     } catch (error) {
@@ -638,13 +639,19 @@ app.post('/api/reviews', async (req, res) => {
 
 app.put('/api/reviews/:id', async (req, res) => {
     try {
-        const { name, rating, comment } = req.body;
+        const { name, rating, comment, visitorId } = req.body;
+        const existing = await Review.findById(req.params.id);
+        if (!existing) return res.status(404).json({ error: 'Review not found' });
+        if (!req.session?.isAdmin) {
+            if (!visitorId || existing.visitorId !== visitorId) {
+                return res.status(403).json({ error: 'You can only edit your own review.' });
+            }
+        }
         const review = await Review.findByIdAndUpdate(
             req.params.id,
             { name, rating, comment },
             { new: true }
         );
-        if (!review) return res.status(404).json({ error: 'Review not found' });
         res.json({ success: true, review });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -654,6 +661,14 @@ app.put('/api/reviews/:id', async (req, res) => {
 
 app.delete('/api/reviews/:id', async (req, res) => {
     try {
+        const visitorId = req.body?.visitorId || req.query?.visitorId;
+        const existing = await Review.findById(req.params.id);
+        if (!existing) return res.status(404).json({ error: 'Review not found' });
+        if (!req.session?.isAdmin) {
+            if (!visitorId || existing.visitorId !== visitorId) {
+                return res.status(403).json({ error: 'You can only delete your own review.' });
+            }
+        }
         await Review.findByIdAndDelete(req.params.id);
         res.json({ success: true });
     } catch (error) {
