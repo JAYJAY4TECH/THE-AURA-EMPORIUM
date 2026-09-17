@@ -12,6 +12,16 @@ const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    tls: { rejectUnauthorized: false }
+});
 const axios = require('axios');
 const crypto = require('crypto');
 const http = require('http');
@@ -32,14 +42,6 @@ app.get('/auraa.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'auraa.png'));
 });
 
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
 
 app.use((req, res, next) => {
     console.log(`\n[${new Date().toLocaleTimeString()}] 📥 INCOMING: ${req.method} ${req.url}`);
@@ -557,9 +559,19 @@ app.post('/api/paystack/verify', async (req, res) => {
                     `
                 };
 
-                transporter.sendMail(mailOptions)
-                    .then(() => console.log('✅ Thank you email sent to:', orderData.email))
-                    .catch(err => console.error('Email failed:', err));
+                try {
+                    await transporter.sendMail({
+                        from: 'THE AURA EMPORIUM <onboarding@resend.dev>',
+                        to: mailOptions.to,
+                        replyTo: mailOptions.replyTo,
+                        subject: mailOptions.subject,
+                        html: mailOptions.html,
+                        text: mailOptions.text
+                    });
+                    console.log('✅ Email sent to:', orderData.email);
+                } catch (emailError) {
+                    console.error('❌ Email failed:', emailError.message);
+                }
             } catch (emailError) {
                 console.error('Email setup failed:', emailError);
             }
@@ -703,7 +715,14 @@ app.post('/api/contact', async (req, res) => {
             </div>`
         };
 
-        await transporter.sendMail(mailOptions);
+        await transporter.sendMail({
+            from: 'THE AURA EMPORIUM <onboarding@resend.dev>',
+            to: mailOptions.to,
+            replyTo: mailOptions.replyTo,
+            subject: mailOptions.subject,
+            html: mailOptions.html,
+            text: mailOptions.text
+        });
         res.json({ success: true, message: 'Message sent successfully!' });
     } catch (error) {
         console.error(' Contact Error:', error.message);
@@ -813,7 +832,14 @@ app.post('/api/admin/forgot-password', async (req, res) => {
             text: `Your password reset code is: ${resetCode}\n\nThis code expires in 15 minutes.`
         };
         
-        await transporter.sendMail(mailOptions);
+        await transporter.sendMail({
+            from: 'THE AURA EMPORIUM <onboarding@resend.dev>',
+            to: admin.email,
+            replyTo: mailOptions.replyTo,
+            subject: mailOptions.subject,
+            html: mailOptions.html,
+            text: mailOptions.text
+        });
         console.log(' Reset code sent to:', email);
         res.json({ success: true, message: 'Reset code sent to your email!' });
     } catch (error) {
@@ -1112,3 +1138,5 @@ function startServer(port) {
 }
 
 startServer(PORT);
+
+
