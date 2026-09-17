@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-  orderNumber: { type: String, unique: true, required: true },
+  orderNumber: { type: String, unique: true },
   customerName: { type: String, required: true },
   customerEmail: { type: String, required: true },  
   customerPhone: { type: String, required: true },    
@@ -24,6 +24,7 @@ const orderSchema = new mongoose.Schema({
   deliveryFee: { type: Number, default: 0 },
   total: { type: Number, required: true },
   paymentMethod: { type: String, default: 'Card or Bank Transfer' },
+  paymentReference: { type: String, unique: true, sparse: true },
   paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Failed'], default: 'Pending' },
   orderStatus: { 
     type: String, 
@@ -85,4 +86,4 @@ orderSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);

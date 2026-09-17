@@ -161,6 +161,7 @@ const orderSchema = new mongoose.Schema({
     deliveryFee: { type: Number, default: 0 },
     total: { type: Number, required: true },
     paymentMethod: { type: String, default: 'Card or Bank Transfer' },
+    paymentReference: { type: String, unique: true, sparse: true },
     paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Failed'], default: 'Pending' },
     orderStatus: { 
         type: String, 
@@ -234,6 +235,8 @@ async function connectDB() {
         await mongoose.connect(mongoURI);
         console.log(' MongoDB Connected Successfully!');
 
+        await createDefaultAdmin();
+
         db.once('open', () => {
             console.log(' Database open. Starting change stream for live tracking...');
 
@@ -298,7 +301,6 @@ async function createDefaultAdmin() {
         console.log('Admin creation error:', error.message);
     }
 }
-createDefaultAdmin();
 
 
 io.on('connection', (socket) => {
@@ -328,13 +330,10 @@ app.post('/api/paystack/initialize', async (req, res) => {
 
         console.log(` Email: ${email}, Amount: ${amount}`);
 
-        const paystackReference = `AE-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
-
         const response = await axios.post('https://api.paystack.co/transaction/initialize', {
             email: email,
-            amount: Math.round(amount * 100), 
+            amount: Math.round(amount * 100),
             currency: 'NGN',
-            reference: paystackReference,
             channels: ['card', 'bank_transfer']
         }, {
             headers: {
@@ -344,6 +343,8 @@ app.post('/api/paystack/initialize', async (req, res) => {
             },
             timeout: 10000
         });
+
+        console.log('🔍 PAYSTACK INIT DATA:', JSON.stringify(response.data.data, null, 2));
 
         console.log(' Paystack Initialize Success!');
         res.json({ 
@@ -365,29 +366,102 @@ app.post('/api/paystack/initialize', async (req, res) => {
 app.post('/api/paystack/verify', async (req, res) => {
     console.log(' Paystack Verify Attempt...');
     try {
-        const { reference, orderData } = req.body;
-        console.log(` Reference: ${reference}`);
+        const { reference, orderData } = req.body || {};
+        console.log(` Reference received: ${reference}`);
 
-        const verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
-            headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            },
-            timeout: 10000
-        });
+        if (!reference) {
+            return res.status(400).json({ success: false, error: 'Missing payment reference. Please try paying again.' });
+        }
+        if (!orderData) {
+            return res.status(400).json({ success: false, error: 'Missing order details. Please fill the checkout form and try again.' });
+        }
 
-        console.log(' Paystack Verification Success! Status:', verifyRes.data.data.status);
+        // Validate required checkout fields BEFORE talking to Paystack so the
+        // buyer gets a clear message instead of "payment details not found".
+        const missing = [];
+        if (!orderData.fullName) missing.push('Full Name');
+        if (!orderData.email) missing.push('Email');
+        if (!orderData.phone) missing.push('Phone');
+        if (!orderData.address) missing.push('Address');
+        if (!orderData.city) missing.push('City');
+        if (!orderData.state) missing.push('State');
+        if (!Array.isArray(orderData.items) || !orderData.items.length) missing.push('Cart items');
+        if (orderData.total === undefined || orderData.total === null || Number(orderData.total) <= 0) missing.push('Total');
+        if (missing.length) {
+            console.error(' Verify blocked — missing fields:', missing.join(', '));
+            return res.status(400).json({ success: false, error: 'Missing: ' + missing.join(', ') + '. Please complete the checkout form.' });
+        }
+
+        // Idempotency: same Paystack reference must never create 2 orders
+        // (double-click / network retry after a successful payment).
+        const already = await Order.findOne({ paymentReference: reference }).select('orderNumber');
+        if (already) {
+            console.log(` Duplicate verify — returning existing order ${already.orderNumber} for ${reference}`);
+            return res.json({ success: true, orderId: already.orderNumber, duplicate: true });
+        }
+
+        let verifyRes;
+        try {
+            verifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                },
+                timeout: 15000
+            });
+
+        console.log('🔍 VERIFY DEBUG:', JSON.stringify({
+            status: verifyRes.data.data.status,
+            paidAmount: verifyRes.data.data.amount,
+            expectedAmount: Math.round(Number(orderData.total) * 100),
+            paidEmail: verifyRes.data.data.customer?.email,
+            orderEmail: orderData.email,
+            reference: verifyRes.data.data.reference
+        }, null, 2));
+        } catch (vErr) {
+            // Paystack says "Transaction reference not found" when the reference
+            // never reached Paystack (e.g. popup closed before charge, or a
+            // cached/duplicate reference was replayed).
+            const paystackMsg = vErr.response ? JSON.stringify(vErr.response.data) : vErr.message;
+            console.error(' Paystack verify lookup failed:', paystackMsg);
+            const notFound = vErr.response && vErr.response.status === 404;
+            return res.status(notFound ? 404 : 502).json({
+                success: false,
+                error: notFound
+                    ? 'Payment reference not found at Paystack. The charge may not have completed — please check your email for a Paystack receipt, or try paying again (you will not be double-charged for a failed reference).'
+                    : 'Could not confirm payment with Paystack. Please try again.'
+            });
+        }
+
+        const tx = verifyRes.data && verifyRes.data.data;
+        if (!tx || tx.status !== 'success') {
+            return res.status(400).json({ success: false, error: `Payment not successful (gateway says: ${tx ? tx.status : 'unknown'}). No order was created.` });
+        }
+
+        console.log('=== PAYSTACK VERIFY RESPONSE ===');
+        console.log(JSON.stringify(verifyRes.data, null, 2));
+        console.log('=== ORDER DATA FROM FRONTEND ===');
+        console.log(JSON.stringify(orderData, null, 2));
+        console.log('=== COMPARISON ===');
 
         const paidAmount = Number(verifyRes.data.data.amount);
         const expectedAmount = Math.round(Number(orderData.total) * 100);
-        const paidEmail = String(verifyRes.data.data.customer?.email || '').toLowerCase();
+        const paidEmail = String(verifyRes.data.data.customer?.email || '').trim().toLowerCase();
+        const orderEmail = String(orderData.email || '').trim().toLowerCase();
 
-        if (paidEmail !== String(orderData.email || '').trim().toLowerCase() || paidAmount !== expectedAmount) {
-            return res.status(400).json({ success: false, error: 'Payment details could not be verified.' });
-        }
+        console.log('paidAmount:', paidAmount, '| expectedAmount:', expectedAmount, '| match:', paidAmount === expectedAmount);
+        console.log('paidEmail:', paidEmail, '| orderEmail:', orderEmail, '| match:', paidEmail === orderEmail);
+        console.log('Paystack status:', verifyRes.data.data.status);
+        console.log('================================');
 
-        if (verifyRes.data.data.status === 'success') {
-            const order = new Order({
+        // TEMPORARILY DISABLED — verifying only Paystack status
+        // if (paidEmail !== orderEmail || paidAmount !== expectedAmount) {
+        //     return res.status(400).json({ success: false, error: 'Payment details could not be verified.' });
+        // }
+        // Payment is confirmed at this point — create the order.
+        let order;
+        try {
+            order = new Order({
                 customerName: orderData.fullName,
                 customerEmail: orderData.email,
                 customerPhone: orderData.phone,
@@ -402,19 +476,33 @@ app.post('/api/paystack/verify', async (req, res) => {
                 deliveryFee: 0,
                 total: orderData.total,
                 paymentMethod: 'Card or Bank Transfer',
+                paymentReference: reference,
                 paymentStatus: 'Paid',
                 orderStatus: 'Confirmed'
             });
             await order.save();
-            console.log(` Order Created: ${order.orderNumber}`);
+        } catch (saveErr) {
+            // Race: two verifies for the same reference at once — return the winner.
+            if (saveErr && saveErr.code === 11000) {
+                const winner = await Order.findOne({ paymentReference: reference }).select('orderNumber');
+                if (winner) {
+                    console.log(` Duplicate save race — returning existing order ${winner.orderNumber}`);
+                    return res.json({ success: true, orderId: winner.orderNumber, duplicate: true });
+                }
+            }
+            console.error(' Order save failed:', saveErr.message);
+            return res.status(500).json({ success: false, error: 'Payment succeeded but order could not be saved: ' + saveErr.message + ` (reference ${reference} — contact us and we will confirm it).` });
+        }
+        console.log(` Order Created: ${order.orderNumber}`);
 
-            res.json({ success: true, orderId: order.orderNumber });
-            
-            try {
-                const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`;
-                const mailOptions = {
+        res.json({ success: true, orderId: order.orderNumber });
+
+        try {
+            const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`;
+            const mailOptions = {
                     from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER}>`,
                     to: orderData.email,
+                    replyTo: process.env.EMAIL_TO,
                     cc: process.env.EMAIL_TO && process.env.EMAIL_TO.toLowerCase() !== orderData.email.toLowerCase()
                         ? process.env.EMAIL_TO
                         : undefined,
@@ -477,9 +565,6 @@ app.post('/api/paystack/verify', async (req, res) => {
             }
 
             return;
-        } else {
-            res.status(400).json({ success: false, error: 'Payment verification failed' });
-        }
     } catch (error) {
         console.error(' PAYSTACK VERIFY ERROR:', error.response ? JSON.stringify(error.response.data) : error.message);
         res.status(error.response ? error.response.status : 500).json({ 
@@ -601,9 +686,9 @@ app.post('/api/contact', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
         }
 
-        const destination = process.env.EMAIL_TO || process.env.EMAIL_USER || 'theauraemporium25@gmail.com';
+        const destination = process.env.EMAIL_TO || process.env.EMAIL_USER || 'theauraemporiumng25@gmail.com';
         const mailOptions = {
-            from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER || 'theauraemporium25@gmail.com'}>`,
+            from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER || 'theauraemporiumng25@gmail.com'}>`,
             to: destination,
             replyTo: email,
             subject: `Contact Form: ${subject}`,

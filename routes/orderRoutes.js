@@ -1,4 +1,7 @@
- 
+ const express = require('express');
+const router = express.Router();
+const Order = require('../models/order');
+
 router.get('/track/:orderNumber', async (req, res) => {
   try {
     const order = await Order.findOne({ orderNumber: req.params.orderNumber });
@@ -28,3 +31,5 @@ router.get('/status/:orderNumber', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+module.exports = router;
