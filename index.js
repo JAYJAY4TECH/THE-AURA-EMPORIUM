@@ -277,8 +277,14 @@ connectDB();
  
 async function createDefaultAdmin() {
     try {
-        const adminEmail = process.env.ADMIN_EMAIL || 'yisabayo90@gmail.com';
-        const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (!adminEmail || !adminPassword) {
+            console.log('⚠️  ADMIN_EMAIL / ADMIN_PASSWORD not set in .env — skipping default admin creation.');
+            return;
+        }
+
         const existingAdmin = await Admin.findOne({ email: adminEmail.toLowerCase() });
 
         if (!existingAdmin) {
@@ -309,6 +315,9 @@ io.on('connection', (socket) => {
  
 app.post('/api/paystack/initialize', async (req, res) => {
     console.log('💰 Paystack Initialize Attempt...');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
         const email = String(req.body.email || '').trim().toLowerCase();
         const amount = Number(req.body.amount);
@@ -319,10 +328,13 @@ app.post('/api/paystack/initialize', async (req, res) => {
 
         console.log(` Email: ${email}, Amount: ${amount}`);
 
+        const paystackReference = `AE-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+
         const response = await axios.post('https://api.paystack.co/transaction/initialize', {
             email: email,
-            amount: parseInt(amount) * 100, 
+            amount: Math.round(amount * 100), 
             currency: 'NGN',
+            reference: paystackReference,
             channels: ['card', 'bank_transfer']
         }, {
             headers: {
@@ -902,28 +914,40 @@ app.put('/api/admin/orders/:id', async (req, res) => {
 });
 
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/shop', (req, res) => res.sendFile(path.join(__dirname, 'public', 'shop.html')));
-app.get('/shop.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'shop.html')));
-app.get('/product', (req, res) => res.sendFile(path.join(__dirname, 'public', 'product.html')));
-app.get('/product.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'product.html')));
-app.get('/explore', (req, res) => res.sendFile(path.join(__dirname, 'public', 'explore.html')));
-app.get('/explore.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'explore.html')));
-app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
-app.get('/cart.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
-app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
-app.get('/checkout.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
-app.get('/track-order', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track-order.html')));
-app.get('/track-order.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track-order.html')));
-app.get('/success', (req, res) => res.sendFile(path.join(__dirname, 'public', 'success.html')));
-app.get('/success.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'success.html')));
-app.get('/about', (req, res) => res.sendFile(path.join(__dirname, 'public', 'about.html')));
-app.get('/about.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'about.html')));
-app.get('/contact', (req, res) => res.sendFile(path.join(__dirname, 'public', 'contact.html')));
-app.get('/contact.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'contact.html')));
-app.get('/reviews', (req, res) => res.sendFile(path.join(__dirname, 'public', 'reviews.html')));
-app.get('/reviews.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'reviews.html')));
+// Helper: serve HTML with no-cache headers so browsers / proxies never reuse
+// a stale page (or stale JS that replays an old Paystack reference).
+// WHY: your explicit app.get() HTML routes run AFTER express.static and do NOT
+// inherit its Cache-Control headers — without this, a cached checkout.html can
+// replay an already-used reference on a second device / retry.
+function sendNoCacheHtml(res, filename) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return res.sendFile(path.join(__dirname, 'public', filename));
+}
+
+app.get('/', (req, res) => sendNoCacheHtml(res, 'index.html'));
+app.get('/index.html', (req, res) => sendNoCacheHtml(res, 'index.html'));
+app.get('/shop', (req, res) => sendNoCacheHtml(res, 'shop.html'));
+app.get('/shop.html', (req, res) => sendNoCacheHtml(res, 'shop.html'));
+app.get('/product', (req, res) => sendNoCacheHtml(res, 'product.html'));
+app.get('/product.html', (req, res) => sendNoCacheHtml(res, 'product.html'));
+app.get('/explore', (req, res) => sendNoCacheHtml(res, 'explore.html'));
+app.get('/explore.html', (req, res) => sendNoCacheHtml(res, 'explore.html'));
+app.get('/cart', (req, res) => sendNoCacheHtml(res, 'cart.html'));
+app.get('/cart.html', (req, res) => sendNoCacheHtml(res, 'cart.html'));
+app.get('/checkout', (req, res) => sendNoCacheHtml(res, 'checkout.html'));
+app.get('/checkout.html', (req, res) => sendNoCacheHtml(res, 'checkout.html'));
+app.get('/track-order', (req, res) => sendNoCacheHtml(res, 'track-order.html'));
+app.get('/track-order.html', (req, res) => sendNoCacheHtml(res, 'track-order.html'));
+app.get('/success', (req, res) => sendNoCacheHtml(res, 'success.html'));
+app.get('/success.html', (req, res) => sendNoCacheHtml(res, 'success.html'));
+app.get('/about', (req, res) => sendNoCacheHtml(res, 'about.html'));
+app.get('/about.html', (req, res) => sendNoCacheHtml(res, 'about.html'));
+app.get('/contact', (req, res) => sendNoCacheHtml(res, 'contact.html'));
+app.get('/contact.html', (req, res) => sendNoCacheHtml(res, 'contact.html'));
+app.get('/reviews', (req, res) => sendNoCacheHtml(res, 'reviews.html'));
+app.get('/reviews.html', (req, res) => sendNoCacheHtml(res, 'reviews.html'));
 
 
 app.get('/admin', (req, res) => {
