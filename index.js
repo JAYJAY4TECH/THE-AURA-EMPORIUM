@@ -79,15 +79,22 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
     });
 
 
+const MongoStore = require('connect-mongo');
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'MyUniqueAuraSecretKey2026!!',
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        collectionName: 'sessions',
+        ttl: 60 * 60 * 24
+    }),
     cookie: {
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
         sameSite: 'lax',
-        secure: false
+        secure: process.env.NODE_ENV === 'production'
     }
 }));
 
