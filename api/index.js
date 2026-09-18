@@ -498,7 +498,16 @@ app.post('/api/paystack/verify', async (req, res) => {
         }
         console.log(` Order Created: ${order.orderNumber}`);
 
-        const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(orderData.customerEmail)}`;
+        const baseUrl = (BASE_URL || process.env.BASE_URL || 'https://www.theauraemporium.shop').replace(/\/+$/, '');
+        const safeOrderNumber = order.orderNumber || '';
+        const safeEmail = order.customerEmail || orderData.email || '';
+        const trackingUrl = `${baseUrl}/track-order?orderId=${encodeURIComponent(safeOrderNumber)}&email=${encodeURIComponent(safeEmail)}`;
+
+        console.log('🔗 Tracking URL built:', trackingUrl);
+        console.log('   baseUrl:', baseUrl);
+        console.log('   order.orderNumber:', order.orderNumber);
+        console.log('   order.customerEmail:', order.customerEmail);
+        console.log('   orderData.email:', orderData.email);
         const mailOptions = {
                 from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER}>`,
                 to: orderData.email,
@@ -542,7 +551,7 @@ app.post('/api/paystack/verify', async (req, res) => {
                             <p>You can track your order anytime using your Order Number.</p>
                             
                             <div style="text-align: center; margin: 20px 0;">
-                                <a href="${trackingUrl}" class="btn">Track Your Order</a>
+                                <a href="${trackingUrl}" class="btn" style="word-break:break-all;">Track Your Order</a>
                             </div>
                             
                             <p>Warm regards,<br><strong>THE AURA EMPORIUM Team</strong></p>
