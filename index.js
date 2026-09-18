@@ -34,13 +34,6 @@ const PORT = Number(process.env.PORT) || 3456;
 const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 
 
-app.get(['/LOGO.jpeg', '/logo.jpeg'], (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'LOGO.jpeg'));
-});
-
-app.get('/auraa.png', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'auraa.png'));
-});
 
 
 app.use((req, res, next) => {
@@ -68,16 +61,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 app.use('/fontawesome', express.static(path.join(__dirname, 'node_modules/@fortawesome/fontawesome-free')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-
-['bodywave.PNG', 'bouncywig.PNG', 'loosewave.PNG', 'deepwave.PNG', 'bobwig.PNG',
-    'layeredwig.PNG', 'bonestraight.PNG', 'pixiecurls.PNG', 'fringiewig.PNG', 'rawdonor.PNG']
-    .forEach((imageName) => {
-        app.get('/' + imageName, (req, res) => {
-            res.sendFile(path.join(__dirname, imageName));
-        });
-    });
-
 
 const MongoStore = require('connect-mongo').default;
 
