@@ -81,6 +81,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const MongoStore = require('connect-mongo').default;
 
+app.set('trust proxy', 1);
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'MyUniqueAuraSecretKey2026!!',
     resave: false,
@@ -90,11 +92,12 @@ app.use(session({
         collectionName: 'sessions',
         ttl: 60 * 60 * 24
     }),
+    proxy: true,
     cookie: {
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
+        secure: true
     }
 }));
 
