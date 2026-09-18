@@ -79,7 +79,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
     });
 
 
-const MongoStore = require('connect-mongo');
+const MongoStore = require('connect-mongo').default;
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'MyUniqueAuraSecretKey2026!!',
