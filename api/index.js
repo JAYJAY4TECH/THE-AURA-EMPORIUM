@@ -44,7 +44,7 @@ const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\
 
 
 app.use((req, res, next) => {
-    console.log(`\n[${new Date().toLocaleTimeString()}] 📥 INCOMING: ${req.method} ${req.url}`);
+    console.log(`\n[${new Date().toLocaleTimeString()}] ???? INCOMING: ${req.method} ${req.url}`);
     next();
 });
 
@@ -234,8 +234,11 @@ async function connectDB() {
     try {
         const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/aura-emporium';
         console.log('MONGO_URI present:', !!process.env.MONGO_URI);
-        console.log('📡 Connecting to MongoDB...');
-        await mongoose.connect(mongoURI);
+        console.log('???? Connecting to MongoDB...');
+        await mongoose.connect(mongoURI, {
+            bufferCommands: false,
+            serverSelectionTimeoutMS: 5000
+        });
         console.log(' MongoDB Connected Successfully!');
 
         await createDefaultAdmin();
@@ -280,14 +283,20 @@ async function connectDB() {
 
 connectDB();
 
- 
+// Vercel cold-start guard: reconnect MongoDB before handling requests
+app.use(async (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        try { await connectDB(); } catch (e) { console.error('Reconnect failed:', e.message); }
+    }
+    next();
+});
 async function createDefaultAdmin() {
     try {
         const adminEmail = process.env.ADMIN_EMAIL;
         const adminPassword = process.env.ADMIN_PASSWORD;
 
         if (!adminEmail || !adminPassword) {
-            console.log('⚠️  ADMIN_EMAIL / ADMIN_PASSWORD not set in .env — skipping default admin creation.');
+            console.log('??????  ADMIN_EMAIL / ADMIN_PASSWORD not set in .env ??? skipping default admin creation.');
             return;
         }
 
@@ -319,7 +328,7 @@ io.on('connection', (socket) => {
 
  
 app.post('/api/paystack/initialize', async (req, res) => {
-    console.log('💰 Paystack Initialize Attempt...');
+    console.log('???? Paystack Initialize Attempt...');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -347,7 +356,7 @@ app.post('/api/paystack/initialize', async (req, res) => {
             timeout: 10000
         });
 
-        console.log('🔍 PAYSTACK INIT DATA:', JSON.stringify(response.data.data, null, 2));
+        console.log('???? PAYSTACK INIT DATA:', JSON.stringify(response.data.data, null, 2));
 
         console.log(' Paystack Initialize Success!');
         res.json({ 
@@ -391,7 +400,7 @@ app.post('/api/paystack/verify', async (req, res) => {
         if (!Array.isArray(orderData.items) || !orderData.items.length) missing.push('Cart items');
         if (orderData.total === undefined || orderData.total === null || Number(orderData.total) <= 0) missing.push('Total');
         if (missing.length) {
-            console.error(' Verify blocked — missing fields:', missing.join(', '));
+            console.error(' Verify blocked ??? missing fields:', missing.join(', '));
             return res.status(400).json({ success: false, error: 'Missing: ' + missing.join(', ') + '. Please complete the checkout form.' });
         }
 
@@ -399,7 +408,7 @@ app.post('/api/paystack/verify', async (req, res) => {
         // (double-click / network retry after a successful payment).
         const already = await Order.findOne({ paymentReference: reference }).select('orderNumber');
         if (already) {
-            console.log(` Duplicate verify — returning existing order ${already.orderNumber} for ${reference}`);
+            console.log(` Duplicate verify ??? returning existing order ${already.orderNumber} for ${reference}`);
             return res.json({ success: true, orderId: already.orderNumber, duplicate: true });
         }
 
@@ -413,7 +422,7 @@ app.post('/api/paystack/verify', async (req, res) => {
                 timeout: 15000
             });
 
-        console.log('🔍 VERIFY DEBUG:', JSON.stringify({
+        console.log('???? VERIFY DEBUG:', JSON.stringify({
             status: verifyRes.data.data.status,
             paidAmount: verifyRes.data.data.amount,
             expectedAmount: Math.round(Number(orderData.total) * 100),
@@ -431,7 +440,7 @@ app.post('/api/paystack/verify', async (req, res) => {
             return res.status(notFound ? 404 : 502).json({
                 success: false,
                 error: notFound
-                    ? 'Payment reference not found at Paystack. The charge may not have completed — please check your email for a Paystack receipt, or try paying again (you will not be double-charged for a failed reference).'
+                    ? 'Payment reference not found at Paystack. The charge may not have completed ??? please check your email for a Paystack receipt, or try paying again (you will not be double-charged for a failed reference).'
                     : 'Could not confirm payment with Paystack. Please try again.'
             });
         }
@@ -457,11 +466,11 @@ app.post('/api/paystack/verify', async (req, res) => {
         console.log('Paystack status:', verifyRes.data.data.status);
         console.log('================================');
 
-        // TEMPORARILY DISABLED — verifying only Paystack status
+        // TEMPORARILY DISABLED ??? verifying only Paystack status
         // if (paidEmail !== orderEmail || paidAmount !== expectedAmount) {
         //     return res.status(400).json({ success: false, error: 'Payment details could not be verified.' });
         // }
-        // Payment is confirmed at this point — create the order.
+        // Payment is confirmed at this point ??? create the order.
         let order;
         try {
             order = new Order({
@@ -485,16 +494,16 @@ app.post('/api/paystack/verify', async (req, res) => {
             });
             await order.save();
         } catch (saveErr) {
-            // Race: two verifies for the same reference at once — return the winner.
+            // Race: two verifies for the same reference at once ??? return the winner.
             if (saveErr && saveErr.code === 11000) {
                 const winner = await Order.findOne({ paymentReference: reference }).select('orderNumber');
                 if (winner) {
-                    console.log(` Duplicate save race — returning existing order ${winner.orderNumber}`);
+                    console.log(` Duplicate save race ??? returning existing order ${winner.orderNumber}`);
                     return res.json({ success: true, orderId: winner.orderNumber, duplicate: true });
                 }
             }
             console.error(' Order save failed:', saveErr.message);
-            return res.status(500).json({ success: false, error: 'Payment succeeded but order could not be saved: ' + saveErr.message + ` (reference ${reference} — contact us and we will confirm it).` });
+            return res.status(500).json({ success: false, error: 'Payment succeeded but order could not be saved: ' + saveErr.message + ` (reference ${reference} ??? contact us and we will confirm it).` });
         }
         console.log(` Order Created: ${order.orderNumber}`);
 
@@ -503,7 +512,7 @@ app.post('/api/paystack/verify', async (req, res) => {
         const safeEmail = order.customerEmail || orderData.email || '';
         const trackingUrl = `${baseUrl}/track-order?orderId=${encodeURIComponent(safeOrderNumber)}&email=${encodeURIComponent(safeEmail)}`;
 
-        console.log('🔗 Tracking URL built:', trackingUrl);
+        console.log('???? Tracking URL built:', trackingUrl);
         console.log('   baseUrl:', baseUrl);
         console.log('   order.orderNumber:', order.orderNumber);
         console.log('   order.customerEmail:', order.customerEmail);
@@ -516,7 +525,7 @@ app.post('/api/paystack/verify', async (req, res) => {
                     ? process.env.EMAIL_TO
                     : undefined,
                 subject: `Order ${order.orderNumber} Confirmed - THE AURA EMPORIUM`,
-                text: `Dear ${orderData.fullName}, your order ${order.orderNumber} has been confirmed. Order total: ₦${Number(orderData.total).toLocaleString()}.`,
+                text: `Dear ${orderData.fullName}, your order ${order.orderNumber} has been confirmed. Order total: ???${Number(orderData.total).toLocaleString()}.`,
                 html: `
                 <!DOCTYPE html>
                 <html>
@@ -534,7 +543,7 @@ app.post('/api/paystack/verify', async (req, res) => {
                 <body>
                     <div class="container">
                         <div class="header">
-                            <h2>👑 Thank You for Shopping with Us!</h2>
+                            <h2>???? Thank You for Shopping with Us!</h2>
                         </div>
                         <div class="content">
                             <p>Dear <strong>${orderData.fullName}</strong>,</p>
@@ -542,11 +551,11 @@ app.post('/api/paystack/verify', async (req, res) => {
                             
                             <div class="order-details">
                                 <p><strong>Order Number:</strong> ${order.orderNumber}</p>
-                                <p><strong>Order Total:</strong> ₦${orderData.total.toLocaleString()}</p>
+                                <p><strong>Order Total:</strong> ???${orderData.total.toLocaleString()}</p>
                             </div>
                             
                             <h4>Your Items:</h4>
-                            ${orderData.items.map(item => `<p>• ${item.productName} x ${item.quantity}</p>`).join('')}
+                            ${orderData.items.map(item => `<p>??? ${item.productName} x ${item.quantity}</p>`).join('')}
                             
                             <p>You can track your order anytime using your Order Number.</p>
                             
@@ -555,10 +564,10 @@ app.post('/api/paystack/verify', async (req, res) => {
                             </div>
                             
                             <p>Warm regards,<br><strong>THE AURA EMPORIUM Team</strong></p>
-                            <p style="color: #888; font-size: 14px;">✨ Find Your Aura. Define Your Presence.</p>
+                            <p style="color: #888; font-size: 14px;">??? Find Your Aura. Define Your Presence.</p>
                         </div>
                         <div class="footer">
-                            <p>© 2026 THE AURA EMPORIUM. All rights reserved.</p>
+                            <p>?? 2026 THE AURA EMPORIUM. All rights reserved.</p>
                         </div>
                     </div>
                 </body>
@@ -572,15 +581,15 @@ app.post('/api/paystack/verify', async (req, res) => {
             (async () => {
                 try {
                     const info = await transporter.sendMail(mailOptions);
-                    console.log('✅ Thank you email sent to:', orderData.email, '| messageId:', info.messageId);
+                    console.log('??? Thank you email sent to:', orderData.email, '| messageId:', info.messageId);
                 } catch (emailError) {
-                    console.error('❌ Email failed for order', order.orderNumber, ':', emailError.message);
+                    console.error('??? Email failed for order', order.orderNumber, ':', emailError.message);
                     await new Promise(resolve => setTimeout(resolve, 2000));
                     try {
                         const info2 = await transporter.sendMail(mailOptions);
-                        console.log('✅ Thank you email sent to:', orderData.email, '| messageId:', info2.messageId, '(retry)');
+                        console.log('??? Thank you email sent to:', orderData.email, '| messageId:', info2.messageId, '(retry)');
                     } catch (retryError) {
-                        console.error('❌ Email failed for order', order.orderNumber, ':', retryError.message, '(retry also failed)');
+                        console.error('??? Email failed for order', order.orderNumber, ':', retryError.message, '(retry also failed)');
                     }
                 }
             })()
@@ -600,7 +609,7 @@ app.post('/api/webhook/paystack', (req, res) => {
     if (hash !== req.headers['x-paystack-signature']) return res.sendStatus(401);
     
     if (req.body.event === 'charge.success') {
-        console.log('✅ Webhook: Payment successful for reference:', req.body.data.reference);
+        console.log('??? Webhook: Payment successful for reference:', req.body.data.reference);
     }
     
     res.sendStatus(200);
@@ -899,7 +908,7 @@ app.post('/api/admin/reset-password', async (req, res) => {
 
 
 app.post('/api/orders', async (req, res) => {
-    console.log('📦 Placing new order...');
+    console.log('???? Placing new order...');
     try {
         const orderData = req.body;
         
@@ -1036,7 +1045,7 @@ app.put('/api/admin/orders/:id', async (req, res) => {
 // Helper: serve HTML with no-cache headers so browsers / proxies never reuse
 // a stale page (or stale JS that replays an old Paystack reference).
 // WHY: your explicit app.get() HTML routes run AFTER express.static and do NOT
-// inherit its Cache-Control headers — without this, a cached checkout.html can
+// inherit its Cache-Control headers ??? without this, a cached checkout.html can
 // replay an already-used reference on a second device / retry.
 function sendNoCacheHtml(res, filename) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
