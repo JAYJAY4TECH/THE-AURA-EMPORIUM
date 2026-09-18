@@ -1130,6 +1130,12 @@ function startServer(port) {
     });
 }
 
-startServer(PORT);
+// Only start the local server when running outside of Vercel.
+// Vercel manages the server for us and expects the app to be exported.
+if (!process.env.VERCEL) {
+    startServer(PORT);
+}
+
+module.exports = app;
 
 
