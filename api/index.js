@@ -233,6 +233,7 @@ const db = mongoose.connection;
 async function connectDB() {
     try {
         const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/aura-emporium';
+        console.log('MONGO_URI present:', !!process.env.MONGO_URI);
         console.log('📡 Connecting to MongoDB...');
         await mongoose.connect(mongoURI);
         console.log(' MongoDB Connected Successfully!');
@@ -1141,6 +1142,6 @@ if (!process.env.VERCEL) {
     startServer(PORT);
 }
 
-module.exports = app;
+module.exports = server;
 
 
