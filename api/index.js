@@ -54,7 +54,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 // Serve public/ with no-cache for HTML/CSS/JS so edits show up without hard-refresh.
 // Libraries (fontawesome) and uploads stay cacheable.
-app.use(express.static(path.join(__dirname, 'public'), {
+app.use(express.static(path.join(__dirname, '..', 'public'), {
     etag: true,
     lastModified: true,
     maxAge: 0,
@@ -66,8 +66,8 @@ app.use(express.static(path.join(__dirname, 'public'), {
         }
     }
 }));
-app.use('/fontawesome', express.static(path.join(__dirname, 'node_modules/@fortawesome/fontawesome-free')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/fontawesome', express.static(path.join(__dirname, '..', 'node_modules/@fortawesome/fontawesome-free')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 const MongoStore = require('connect-mongo').default;
 
@@ -1032,7 +1032,7 @@ function sendNoCacheHtml(res, filename) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    return res.sendFile(path.join(__dirname, 'public', filename));
+    return res.sendFile(path.join(__dirname, '..', 'public', filename));
 }
 
 app.get('/', (req, res) => sendNoCacheHtml(res, 'index.html'));
@@ -1067,31 +1067,31 @@ app.get('/admin', (req, res) => {
     }
 });
 
-app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')));
+app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'admin-login.html')));
 app.get('/admin/dashboard', (req, res) => {
     if (req.session.isAdmin) {
-        res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+        res.sendFile(path.join(__dirname, '..', 'public', 'admin-dashboard.html'));
     } else {
         res.redirect('/admin/login');
     }
 });
 app.get('/admin/products', (req, res) => {
     if (req.session.isAdmin) {
-        res.sendFile(path.join(__dirname, 'public', 'admin-products.html'));
+        res.sendFile(path.join(__dirname, '..', 'public', 'admin-products.html'));
     } else {
         res.redirect('/admin/login');
     }
 });
 app.get('/admin/orders', (req, res) => {
     if (req.session.isAdmin) {
-        res.sendFile(path.join(__dirname, 'public', 'admin-orders.html'));
+        res.sendFile(path.join(__dirname, '..', 'public', 'admin-orders.html'));
     } else {
         res.redirect('/admin/login');
     }
 });
 app.get('/admin/reviews', (req, res) => {
     if (req.session.isAdmin) {
-        res.sendFile(path.join(__dirname, 'public', 'admin-reviews.html'));
+        res.sendFile(path.join(__dirname, '..', 'public', 'admin-reviews.html'));
     } else {
         res.redirect('/admin/login');
     }
@@ -1100,7 +1100,7 @@ app.get('/admin/reviews', (req, res) => {
 
 app.use((req, res) => {
     console.log(' 404 NOT FOUND:', req.method, req.url);
-    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+    res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
 });
 
 
