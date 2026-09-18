@@ -27,6 +27,13 @@ const crypto = require('crypto');
 const http = require('http');
 const { Server } = require('socket.io');
 
+let waitUntil;
+try {
+    ({ waitUntil } = require('@vercel/functions'));
+} catch {
+    waitUntil = (promise) => { promise.catch(() => {}); };
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -490,86 +497,84 @@ app.post('/api/paystack/verify', async (req, res) => {
         }
         console.log(` Order Created: ${order.orderNumber}`);
 
+        const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(orderData.customerEmail)}`;
+        const mailOptions = {
+                from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER}>`,
+                to: orderData.email,
+                replyTo: process.env.EMAIL_TO,
+                cc: process.env.EMAIL_TO && process.env.EMAIL_TO.toLowerCase() !== orderData.email.toLowerCase()
+                    ? process.env.EMAIL_TO
+                    : undefined,
+                subject: `Order ${order.orderNumber} Confirmed - THE AURA EMPORIUM`,
+                text: `Dear ${orderData.fullName}, your order ${order.orderNumber} has been confirmed. Order total: ₦${Number(orderData.total).toLocaleString()}.`,
+                html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Georgia', serif; color: #1a1a1a; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: #d4af37; padding: 20px; text-align: center; color: #1a1a1a; border-radius: 10px 10px 0 0; }
+                        .content { background: #fff; padding: 30px; border: 1px solid #e8e4df; border-radius: 0 0 10px 10px; }
+                        .btn { background: #d4af37; color: #1a1a1a; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; }
+                        .order-details { background: #f8f6f3; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h2>👑 Thank You for Shopping with Us!</h2>
+                        </div>
+                        <div class="content">
+                            <p>Dear <strong>${orderData.fullName}</strong>,</p>
+                            <p>We appreciate your purchase! Your order has been confirmed and is now being processed.</p>
+                            
+                            <div class="order-details">
+                                <p><strong>Order Number:</strong> ${order.orderNumber}</p>
+                                <p><strong>Order Total:</strong> ₦${orderData.total.toLocaleString()}</p>
+                            </div>
+                            
+                            <h4>Your Items:</h4>
+                            ${orderData.items.map(item => `<p>• ${item.productName} x ${item.quantity}</p>`).join('')}
+                            
+                            <p>You can track your order anytime using your Order Number.</p>
+                            
+                            <div style="text-align: center; margin: 20px 0;">
+                                <a href="${trackingUrl}" class="btn">Track Your Order</a>
+                            </div>
+                            
+                            <p>Warm regards,<br><strong>THE AURA EMPORIUM Team</strong></p>
+                            <p style="color: #888; font-size: 14px;">✨ Find Your Aura. Define Your Presence.</p>
+                        </div>
+                        <div class="footer">
+                            <p>© 2026 THE AURA EMPORIUM. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                `
+        };
+
         res.json({ success: true, orderId: order.orderNumber });
 
-        try {
-            const trackingUrl = `${BASE_URL}/track-order?orderId=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`;
-            const mailOptions = {
-                    from: `"THE AURA EMPORIUM" <${process.env.EMAIL_USER}>`,
-                    to: orderData.email,
-                    replyTo: process.env.EMAIL_TO,
-                    cc: process.env.EMAIL_TO && process.env.EMAIL_TO.toLowerCase() !== orderData.email.toLowerCase()
-                        ? process.env.EMAIL_TO
-                        : undefined,
-                    subject: `Order ${order.orderNumber} Confirmed - THE AURA EMPORIUM`,
-                    text: `Dear ${orderData.fullName}, your order ${order.orderNumber} has been confirmed. Order total: ₦${Number(orderData.total).toLocaleString()}.`,
-                    html: `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <style>
-                            body { font-family: 'Georgia', serif; color: #1a1a1a; }
-                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                            .header { background: #d4af37; padding: 20px; text-align: center; color: #1a1a1a; border-radius: 10px 10px 0 0; }
-                            .content { background: #fff; padding: 30px; border: 1px solid #e8e4df; border-radius: 0 0 10px 10px; }
-                            .btn { background: #d4af37; color: #1a1a1a; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; }
-                            .order-details { background: #f8f6f3; padding: 15px; border-radius: 8px; margin: 15px 0; }
-                            .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="container">
-                            <div class="header">
-                                <h2>👑 Thank You for Shopping with Us!</h2>
-                            </div>
-                            <div class="content">
-                                <p>Dear <strong>${orderData.fullName}</strong>,</p>
-                                <p>We appreciate your purchase! Your order has been confirmed and is now being processed.</p>
-                                
-                                <div class="order-details">
-                                    <p><strong>Order Number:</strong> ${order.orderNumber}</p>
-                                    <p><strong>Order Total:</strong> ₦${orderData.total.toLocaleString()}</p>
-                                </div>
-                                
-                                <h4>Your Items:</h4>
-                                ${orderData.items.map(item => `<p>• ${item.productName} x ${item.quantity}</p>`).join('')}
-                                
-                                <p>You can track your order anytime using your Order Number.</p>
-                                
-                                <div style="text-align: center; margin: 20px 0;">
-                                    <a href="${trackingUrl}" class="btn">Track Your Order</a>
-                                </div>
-                                
-                                <p>Warm regards,<br><strong>THE AURA EMPORIUM Team</strong></p>
-                                <p style="color: #888; font-size: 14px;">✨ Find Your Aura. Define Your Presence.</p>
-                            </div>
-                            <div class="footer">
-                                <p>© 2026 THE AURA EMPORIUM. All rights reserved.</p>
-                            </div>
-                        </div>
-                    </body>
-                    </html>
-                    `
-                };
-
+        waitUntil(
+            (async () => {
                 try {
-                    await transporter.sendMail({
-                        from: 'THE AURA EMPORIUM <onboarding@resend.dev>',
-                        to: mailOptions.to,
-                        replyTo: mailOptions.replyTo,
-                        subject: mailOptions.subject,
-                        html: mailOptions.html,
-                        text: mailOptions.text
-                    });
-                    console.log('✅ Email sent to:', orderData.email);
+                    const info = await transporter.sendMail(mailOptions);
+                    console.log('✅ Thank you email sent to:', orderData.email, '| messageId:', info.messageId);
                 } catch (emailError) {
-                    console.error('❌ Email failed:', emailError.message);
+                    console.error('❌ Email failed for order', order.orderNumber, ':', emailError.message);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    try {
+                        const info2 = await transporter.sendMail(mailOptions);
+                        console.log('✅ Thank you email sent to:', orderData.email, '| messageId:', info2.messageId, '(retry)');
+                    } catch (retryError) {
+                        console.error('❌ Email failed for order', order.orderNumber, ':', retryError.message, '(retry also failed)');
+                    }
                 }
-            } catch (emailError) {
-                console.error('Email setup failed:', emailError);
-            }
-
-            return;
+            })()
+        );
     } catch (error) {
         console.error(' PAYSTACK VERIFY ERROR:', error.response ? JSON.stringify(error.response.data) : error.message);
         res.status(error.response ? error.response.status : 500).json({ 

@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.4.2",
+    "@vercel/functions": "^3.9.8",
     "axios": "^1.20.0",
+    "@vercel/functions": "^1.4.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "connect-mongo": "^6.0.0",
